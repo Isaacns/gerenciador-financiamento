@@ -10,7 +10,7 @@
 "use strict";
 
 /* >>> Backend (Apps Script) — vazio = modo demonstração (edições valem na sessão). <<< */
-var API_URL = "";
+var API_URL = "https://script.google.com/macros/s/AKfycbxrOR7LZBG-r5RYLDKNYnUS8axM1le2IuRa8ZrD4zdA-najiCZ-5AwplHnmAFVkW6ZR/exec";
 
 var BRL=function(v){return (v==null||v==="")?"—":"R$ "+Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});};
 function distinct(a){return a.filter(function(v,i){return a.indexOf(v)===i;});}
