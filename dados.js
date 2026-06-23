@@ -8,7 +8,8 @@ const DADOS = {
     instancia: "Meu Apê 203 — Dom Pedro I",
     propLabel: "Proprietária",
     supabaseUrl: "https://emyjzjadmxgbtmxnzazu.supabase.co",
-    supabaseKey: "sb_publishable_PY2YDxUzGgaXRVtvCcasBA_Ml7YUBTC"
+    supabaseKey: "sb_publishable_PY2YDxUzGgaXRVtvCcasBA_Ml7YUBTC",
+    assinaturaUrl: "https://buy.stripe.com/test_6oUdRbafr8nKfMgfP1eIw00"
   },
   resumo: { entradaPago:0, entradaPrev:0, entradaPct:0, docPago:0, docPrev:0, docPct:0, jurosPago:0, jurosPrev:0, jurosPct:0, finSaldo:0, totalInvestido:0, custoTotal:0, faltaPagar:0 },
   finMeta: { saldoInicial:188694.70, jurosMensal:0.0058, totalPago:0, saldoAtual:188694.70, parcelasPagas:0, parcelasRestantes:420, pctQuitado:0 },
