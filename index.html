@@ -314,6 +314,7 @@ const MODS=[
   {id:'obra',nome:'Juros de Obra',sub:'Evolução da obra',grp:'Etapas de pagamento',roles:['admin','proprietario'],ready:true,desc:'Juros de obra e avanço da construção.'},
   {id:'financiamento',nome:'Financiamento',sub:'SAC · 420 parcelas',grp:'Etapas de pagamento',roles:['admin','proprietario'],ready:true,desc:'Saldo devedor e amortização do banco.'},
   {id:'simulador',nome:'Simulador',sub:'Amortização antecipada',grp:'Ferramentas',roles:['admin','proprietario'],ready:true,desc:'Simule aportes e veja a economia de juros.'},
+  {id:'clientes',nome:'Clientes',sub:'Contratantes',grp:'Administração',roles:['admin'],adminOnly:true,ready:true,desc:'Lista e estado das contas dos clientes (somente admins).'},
   {id:'configurador',nome:'Configurador',sub:'Nova instância',grp:'Administração',roles:['admin'],adminOnly:true,ready:true,desc:'Gere a configuração de um novo comprador (somente admins).'}
 ];
 const fmtBRL=n=>'R$ '+(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -359,7 +360,7 @@ function navigate(id){
   document.getElementById('crumb').childNodes[0].nodeValue=m.nome;
   document.getElementById('crumbSub').textContent=m.sub||'';
   const v=document.getElementById('view');
-  ({home:renderHome,visao:renderVisao,entrada:renderEntrada,doc:renderDoc,obra:renderObra,financiamento:renderFin,simulador:renderSim,configurador:renderConfigurador}[id]||renderHome)(v);
+  ({home:renderHome,visao:renderVisao,entrada:renderEntrada,doc:renderDoc,obra:renderObra,financiamento:renderFin,simulador:renderSim,configurador:renderConfigurador,clientes:renderClientes}[id]||renderHome)(v);
   window.scrollTo(0,0);
 }
 function sig(){return `<div class="sig"><div class="by"><b>Gerenciador de Financiamento</b> <span>by</span> <img class="sym" src="vizio-symbol-dark.png"> <img class="wm" src="vizio-wordmark-dark.png"> · Sua planilha virou software.</div><span>Dados: ${DADOS._meta.fonte} · ${DADOS._meta.gerado}</span></div>`;}
@@ -380,6 +381,44 @@ function kvOf(id){const r=DADOS.resumo;
   if(id==='financiamento')return `Saldo <b>${fmtBRL(DADOS.finMeta.saldoAtual)}</b> · 420x`;
   if(id==='simulador')return `Economize até <b>${fmtBRL(DADOS.sim.jurosBase-DADOS.sim.jurosSim)}</b>`;
   return '';
+}
+var _CLI=[];
+function renderClientes(v){
+  document.body.classList.remove('home');
+  v.innerHTML='<div class="card"><h2>Clientes</h2><div class="cap">Contratantes do sistema (somente admin). Atualize para ver o estado de cada conta.</div>'+
+    '<div style="margin:0 0 12px"><button class="chip on" onclick="carregarClientes()">Atualizar</button></div>'+
+    '<div id="clientesBox" style="font-size:.9rem;color:#667085">Carregando...</div></div>'+sig();
+  carregarClientes();
+}
+function _cliFetch(payload){
+  var cfg=DADOS._cfg||{};
+  if(!window.SUPA||!cfg.supabaseUrl) return Promise.reject(new Error('Disponivel apenas no modo nuvem (Supabase).'));
+  return window.SUPA.auth.getSession().then(function(s){
+    var token=s&&s.data&&s.data.session?s.data.session.access_token:null;
+    if(!token) throw new Error('Sessao expirada.');
+    return fetch(cfg.supabaseUrl.replace(/\/+$/,'')+'/functions/v1/admin-clients',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':cfg.supabaseKey||''},body:JSON.stringify(payload)}).then(function(r){return r.json();});
+  });
+}
+function carregarClientes(){
+  var box=document.getElementById('clientesBox'); if(box)box.textContent='Carregando...';
+  _cliFetch({action:'list'}).then(function(res){
+    var b=document.getElementById('clientesBox'); if(!b)return;
+    if(!res.ok){ b.innerHTML='<span style="color:#DC2626">Erro: '+(res.error||'falha')+'</span>'; return; }
+    _CLI=res.clients||[];
+    if(!_CLI.length){ b.innerHTML='Nenhum cliente ainda.'; return; }
+    var rows=_CLI.map(function(c,i){ var et=c.counts||{};
+      var st=c.is_admin?'<span class="badge pago">admin</span>':(c.confirmed?'<span class="badge pago">ativo</span>':'<span class="badge vencer">pendente</span>');
+      return '<tr><td><b>'+(c.nome||'-')+'</b><div style="font-size:.76rem;color:#667085">'+(c.email||'')+'</div></td><td>'+(c.instancia||'-')+'</td><td class="num">'+(et.entrada||0)+' / '+(et.doc||0)+' / '+(et.obra||0)+' / '+(et.fin||0)+'</td><td class="num">'+fmtBRL(c.investido||0)+'</td><td>'+st+'</td><td><button class="chip" onclick="reenviarConvite('+i+')">Reenviar convite</button></td></tr>';
+    }).join('');
+    b.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>Cliente</th><th>Imovel</th><th class="num">Parcelas E/D/O/F</th><th class="num">Investido</th><th>Status</th><th>Acoes</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }).catch(function(e){ var b=document.getElementById('clientesBox'); if(b)b.innerHTML='<span style="color:#DC2626">'+e.message+'</span>'; });
+}
+function reenviarConvite(i){
+  var c=_CLI[i]; if(!c||!c.email){alert('Sem e-mail para este cliente.');return;}
+  if(!confirm('Reenviar convite/e-mail para '+c.email+'?'))return;
+  _cliFetch({action:'invite',email:c.email,appUrl:location.href.split('#')[0]}).then(function(res){
+    alert(res.ok?('Convite/e-mail reenviado para '+c.email):('Erro: '+(res.error||'falha')));
+  }).catch(function(e){ alert(e.message); });
 }
 function renderConfigurador(v){
   document.body.classList.remove('home');
