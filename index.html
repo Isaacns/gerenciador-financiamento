@@ -379,7 +379,7 @@ function kvOf(id){const r=DADOS.resumo;
   if(id==='doc'){const a=aggDoc();return `<b>${fmtBRL(a.pago)}</b> pagos · ${fmtPct(a.pct)}`;}
   if(id==='obra'){const a=aggObra();return `obra <b>${fmtPct(a.evolucao)}</b> · ${fmtPct(a.pct)} pago`;}
   if(id==='financiamento')return `Saldo <b>${fmtBRL(DADOS.finMeta.saldoAtual)}</b> · 420x`;
-  if(id==='simulador')return `Economize até <b>${fmtBRL(DADOS.sim.jurosBase-DADOS.sim.jurosSim)}</b>`;
+  if(id==='simulador'){const b=simBase();if(b.saldo<=0||b.parcela<=0)return 'Sem financiamento ativo';const s0=simulate(b.saldo,b.juros,b.parcela,0,0),s1=simulate(b.saldo,b.juros,b.parcela,b.aporteExtra,0);const eco=(isFinite(s0.juros)&&isFinite(s1.juros))?(s0.juros-s1.juros):0;return `Economize até <b>${fmtBRL(eco>0?eco:0)}</b>`;}
   return '';
 }
 var _CLI=[];
@@ -437,7 +437,7 @@ function renderHome(v){
     doc:[DADOS.doc.map(e=>e.total||0),'bar'],
     obra:[DADOS.juros.map(e=>e.valor||0),'bar'],
     financiamento:[DADOS.fin.filter((_,i)=>i%24===0).map(e=>e.saldo||0),'line'],
-    simulador:[[DADOS.sim.mesesBase,DADOS.sim.mesesSim],'bar']
+    simulador:[(function(){const b=simBase();if(b.saldo<=0||b.parcela<=0)return [0,0];const s0=simulate(b.saldo,b.juros,b.parcela,0,0),s1=simulate(b.saldo,b.juros,b.parcela,b.aporteExtra,0);return [isFinite(s0.meses)?s0.meses:0,isFinite(s1.meses)?s1.meses:0];})(),'bar']
   };
   let cards='';
   MODS.filter(m=>m.id!=='home'&&can(m)).forEach(m=>{
@@ -631,8 +631,17 @@ function simulate(saldo,taxa,parcela,aporteExtra,aporteUnico){
   }
   return {meses,juros,desemb};
 }
+function simBase(){
+  var fm=DADOS.finMeta||{}, fin=DADOS.fin||[];
+  var saldo=Number(fm.saldoAtual!=null?fm.saldoAtual:(fm.saldoInicial||0))||0;
+  var juros=Number(fm.jurosMensal||0)||0;
+  var u=fin.find(function(e){return !e.quitado;});
+  var parc=Number((u&&u.valor)||(fin[0]&&fin[0].valor)||0)||0;
+  var aporte=parc>0?Math.round(parc*0.15/10)*10:0;
+  return {saldo:saldo,juros:juros,parcela:parc,aporteExtra:aporte,aporteUnico:0};
+}
 function renderSim(v){
-  const sm=DADOS.sim;
+  const sm=simBase();
   v.innerHTML=`
     <div class="card"><h2>Simulador de amortização antecipada</h2><div class="cap">Edite os campos em azul. O modelo: parcela fixa mensal + juros sobre o saldo devedor (aproximação do contrato).</div>
       <div class="simgrid">
