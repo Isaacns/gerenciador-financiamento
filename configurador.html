@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIZIO · Configurador de Instância — Gerenciador de Financiamento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#1C64F0; --blue-h:#3C94FC; --blue-d:#1450C8; --sky:#5AA0FF; --blue-soft:#E7EFFE;
+  --ink:#0E1726; --graphite:#10141F; --bg:#0C0F18; --surface:#fff; --text:#161B26;
+  --muted:#667085; --muted2:#98A2B3; --border:#E4E8EF; --row:#F7F9FC;
+  --success:#16A34A; --warn:#D97706; --danger:#DC2626;
+  --radius:12px; --font:'Inter','Segoe UI',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh}
+.wrap{max-width:1180px;margin:0 auto;padding:24px}
+.top{display:flex;align-items:center;gap:14px;padding:8px 2px 22px;color:#fff}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .sym{width:38px;height:38px}
+.brand b{font-size:1.15rem;font-weight:800;letter-spacing:.14em}
+.top .sub{margin-left:6px;font-size:.84rem;color:#7C86A0;border-left:1px solid #2A3346;padding-left:14px}
+.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:20px;align-items:start}
+@media(max-width:920px){.grid{grid-template-columns:1fr}}
+.card{background:var(--surface);border-radius:16px;padding:22px 24px;box-shadow:0 14px 36px rgba(0,0,0,.28)}
+.card h2{font-size:1.05rem;font-weight:800;margin-bottom:4px}
+.card .cap{font-size:.82rem;color:var(--muted);margin-bottom:16px}
+.sec{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--blue-d);font-weight:700;margin:18px 0 10px;border-top:1px solid var(--border);padding-top:14px}
+.sec:first-of-type{border-top:0;padding-top:0;margin-top:4px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:560px){.row2,.row3{grid-template-columns:1fr}}
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin-bottom:5px}
+.fld input,.fld select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.92rem;font-family:inherit;font-variant-numeric:tabular-nums}
+.fld input:focus,.fld select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}
+.toggle{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--text);font-weight:600;cursor:pointer;margin-bottom:6px}
+.toggle input{width:16px;height:16px;accent-color:var(--blue)}
+.opt{opacity:.5;pointer-events:none;transition:opacity .15s}
+.opt.on{opacity:1;pointer-events:auto}
+.btn{width:100%;background:var(--blue);color:#fff;border:0;padding:13px;border-radius:10px;font-weight:800;font-size:.95rem;margin-top:18px}
+.btn:hover{background:var(--blue-h)}
+.btn.sec2{background:#11151f;color:#fff;margin-top:10px}
+.btn.sec2:hover{background:#1b2233}
+/* preview */
+.pv-hero{background:linear-gradient(150% 120% at 75% 0,#1A2030,#0B0E16);border-radius:16px;padding:22px;color:#fff;margin-bottom:16px}
+.pv-title{font-size:1.15rem;font-weight:800}
+.pv-title span{font-weight:300;color:#8A93A8}
+.pv-inst{font-size:.82rem;color:#7C86A0;margin-top:2px}
+.pv-k{display:flex;flex-wrap:wrap;margin-top:16px}
+.pv-k .k{padding:0 18px 0 0;margin-right:18px;border-right:1px solid #232B40}
+.pv-k .k:last-child{border-right:0;margin-right:0}
+.pv-k .n{font-size:1.15rem;font-weight:800}
+.pv-k .l{font-size:.62rem;text-transform:uppercase;letter-spacing:.05em;color:#667085;margin-top:2px}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.kpi{border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.kpi .l{font-size:.66rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:600}
+.kpi .v{font-size:1.15rem;font-weight:800;margin-top:3px}
+.pv-tbl{font-size:.8rem;border-collapse:collapse;width:100%}
+.pv-tbl th,.pv-tbl td{text-align:right;padding:5px 8px;border-bottom:1px solid var(--border)}
+.pv-tbl th:first-child,.pv-tbl td:first-child{text-align:left}
+.pv-tbl th{font-size:.64rem;text-transform:uppercase;color:var(--muted);font-weight:600}
+.note{font-size:.78rem;color:var(--muted);line-height:1.5;margin-top:10px}
+.steps{background:var(--blue-soft);border:1px solid #C3D9FC;border-radius:12px;padding:14px 16px;font-size:.82rem;color:#13386F;line-height:1.6;margin-top:14px}
+.steps b{color:#0E2A57}
+.ok{color:var(--success);font-weight:700}
+.warn{color:var(--warn);font-weight:700}
+.foot{color:#667085;font-size:.74rem;text-align:center;padding:22px 0 6px}
+code{background:#eef2fb;padding:1px 6px;border-radius:5px;font-size:.85em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <svg class="sym" viewBox="0 0 48 48" fill="none"><path d="M24 4l16 9v10L24 32 8 23V13z" fill="#1C64F0"/><path d="M24 20l16-9v10L24 30 8 21V11z" fill="#5AA0FF" opacity=".6"/><path d="M24 28l16-9v10l-16 9-16-9V19z" fill="#0E1726" opacity=".85"/></svg>
+      <b>VIZIO</b>
+    </div>
+    <div class="sub">Configurador de Instância · Gerenciador de Financiamento</div>
+  </div>
+
+  <div class="grid">
+    <!-- ============ FORM ============ -->
+    <div class="card">
+      <h2>Dados do novo comprador</h2>
+      <div class="cap">Preencha os parâmetros do financiamento. O sistema calcula todo o cronograma e gera o <code>dados.js</code> da instância — sem precisar de planilha.</div>
+
+      <div class="sec">Identificação</div>
+      <div class="fld"><label>Nome do comprador</label><input id="f_nome" value="" placeholder="Ex.: João da Silva" oninput="recalc()"></div>
+      <div class="row2">
+        <div class="fld"><label>Bem / imóvel (aparece no painel)</label><input id="f_inst" value="" placeholder="Ex.: Apê 502 — Edifício Aurora" oninput="recalc()"></div>
+        <div class="fld"><label>Perfil (rótulo)</label><input id="f_role" value="Proprietário" oninput="recalc()"></div>
+      </div>
+      <div class="row2">
+        <div class="fld"><label>Usuário de acesso</label><input id="f_user" value="" placeholder="ex.: joao" oninput="recalc()"></div>
+        <div class="fld"><label>Senha de acesso</label><input id="f_pass" value="" placeholder="defina uma senha" oninput="recalc()"></div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="t_auth" onchange="recalc()"> usar autenticação real (senha validada no servidor, fora do código público)</label>
+      <div class="opt" id="o_auth"><div class="row2">
+        <div class="fld"><label>ID da planilha-banco (Google Sheets)</label><input id="f_sheetid" value="" placeholder="cole o ID da planilha do comprador" oninput="recalc()"></div>
+        <div class="fld"><label>URL /exec do Apps Script (após publicar)</label><input id="f_authurl" value="" placeholder="https://script.google.com/.../exec" oninput="recalc()"></div>
+      </div></div>
+
+      <div class="sec">Financiamento (banco)</div>
+      <div class="row2">
+        <div class="fld"><label>Valor financiado (R$)</label><input id="f_valor" type="number" value="188694.70" oninput="recalc()"></div>
+        <div class="fld"><label>Sistema</label><select id="f_sist" onchange="recalc()"><option value="SAC">SAC (parcela decrescente)</option><option value="PRICE">PRICE (parcela fixa)</option></select></div>
+      </div>
+      <div class="row3">
+        <div class="fld"><label>Juros (% ao mês)</label><input id="f_juros" type="number" step="0.01" value="0.58" oninput="recalc()"></div>
+        <div class="fld"><label>Nº de parcelas</label><input id="f_nparc" type="number" value="420" oninput="recalc()"></div>
+        <div class="fld"><label>1ª parcela em</label><input id="f_data" type="month" value="2027-04" oninput="recalc()"></div>
+      </div>
+      <div class="fld"><label>Parcelas já pagas</label><input id="f_pagas" type="number" value="0" oninput="recalc()"></div>
+
+      <div class="sec">Entrada parcelada <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(opcional)</span></div>
+      <label class="toggle"><input type="checkbox" id="t_ent" onchange="toggle();recalc()"> incluir entrada parcelada</label>
+      <div class="opt" id="o_ent"><div class="row3">
+        <div class="fld"><label>Valor total (R$)</label><input id="e_total" type="number" value="56305.30" oninput="recalc()"></div>
+        <div class="fld"><label>Nº parcelas</label><input id="e_n" type="number" value="56" oninput="recalc()"></div>
+        <div class="fld"><label>Já pagas</label><input id="e_pagas" type="number" value="0" oninput="recalc()"></div>
+      </div><div class="fld" style="max-width:50%"><label>1ª parcela em</label><input id="e_data" type="month" value="2024-07" oninput="recalc()"></div></div>
+
+      <div class="sec">Documentação <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(opcional)</span></div>
+      <label class="toggle"><input type="checkbox" id="t_doc" onchange="toggle();recalc()"> incluir documentação (RTBI + cartório)</label>
+      <div class="opt" id="o_doc"><div class="row3">
+        <div class="fld"><label>Valor total (R$)</label><input id="d_total" type="number" value="10050.90" oninput="recalc()"></div>
+        <div class="fld"><label>Nº parcelas</label><input id="d_n" type="number" value="38" oninput="recalc()"></div>
+        <div class="fld"><label>Já pagas</label><input id="d_pagas" type="number" value="0" oninput="recalc()"></div>
+      </div></div>
+
+      <div class="sec">Juros de obra <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(opcional)</span></div>
+      <label class="toggle"><input type="checkbox" id="t_obra" onchange="toggle();recalc()"> incluir juros de obra</label>
+      <div class="opt" id="o_obra"><div class="row3">
+        <div class="fld"><label>Valor total (R$)</label><input id="ob_total" type="number" value="33712.61" oninput="recalc()"></div>
+        <div class="fld"><label>Nº parcelas</label><input id="ob_n" type="number" value="33" oninput="recalc()"></div>
+        <div class="fld"><label>Já pagas</label><input id="ob_pagas" type="number" value="0" oninput="recalc()"></div>
+      </div><div class="fld" style="max-width:50%"><label>1ª parcela em</label><input id="ob_data" type="month" value="2024-09" oninput="recalc()"></div></div>
+
+      <button class="btn" onclick="baixar()">⬇ Gerar e baixar dados.js da instância</button>
+      <button class="btn sec2" onclick="gerarBackend()">⬇ Gerar backend Apps Script (Code.gs)</button>
+      <button class="btn sec2" onclick="copiar()">Copiar dados.js para a área de transferência</button>
+    </div>
+
+    <!-- ============ PREVIEW ============ -->
+    <div>
+      <div class="pv-hero">
+        <div class="pv-title">GERENCIADOR DE <span>FINANCIAMENTO</span></div>
+        <div class="pv-inst" id="pv_inst">—</div>
+        <div class="pv-k" id="pv_k"></div>
+      </div>
+      <div class="card">
+        <h2>Prévia dos números</h2>
+        <div class="cap">Calculado a partir dos parâmetros (atualiza em tempo real).</div>
+        <div class="kpis" id="pv_kpis"></div>
+        <div class="sec">Financiamento — primeiras parcelas</div>
+        <table class="pv-tbl"><thead><tr><th>#</th><th>Mês</th><th>Parcela</th><th>Amort.</th><th>Saldo</th></tr></thead><tbody id="pv_fin"></tbody></table>
+        <div class="note" id="pv_note"></div>
+        <div class="steps">
+          <b>Como criar a instância do comprador:</b><br>
+          1. Clique em <b>Gerar e baixar dados.js</b>.<br>
+          2. Crie um repositório novo (ou copie o do modelo) com os arquivos de <code>02_Dashboard/</code>.<br>
+          3. Substitua o <code>dados.js</code> pelo arquivo gerado e publique no GitHub Pages.<br>
+          4. Crie a planilha-banco + Apps Script do comprador e preencha o <code>API_URL</code> (ver <code>GUIA-GO-LIVE.md</code>).<br>
+          O nome do imóvel e os logins já vêm embutidos no <code>dados.js</code> — não precisa editar o <code>index.html</code>.
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">Sua planilha virou software. · um produto INPERSON</div>
+</div>
+
+<script>
+const BRL=n=>'R$ '+(Math.round(n||0)).toLocaleString('pt-BR');
+const BRL2=n=>'R$ '+(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const PCT=n=>(n*100).toFixed(1).replace('.',',')+'%';
+function val(id){return document.getElementById(id).value;}
+function num(id){return parseFloat(val(id))||0;}
+function int(id){return parseInt(val(id))||0;}
+function chk(id){return document.getElementById(id).checked;}
+function toggle(){['ent','doc','obra','auth'].forEach(k=>document.getElementById('o_'+k).classList.toggle('on',chk('t_'+k)));}
+
+function addMonths(ym,k){ // ym "AAAA-MM" -> "AAAA-MM-08" + k meses
+  const p=ym.split('-');let y=+p[0],m=(+p[1])-1+k;y+=Math.floor(m/12);m=((m%12)+12)%12;
+  return `${y}-${String(m+1).padStart(2,'0')}-08`;
+}
+function anoDe(d){return +String(d).slice(0,4);}
+
+/* ---------- motores ---------- */
+function schedFin(valor,i,n,sist,data,pagas){
+  const rows=[];let saldo=valor;
+  const amortSAC=valor/n;
+  const parcPRICE = i>0 ? valor*i/(1-Math.pow(1+i,-n)) : valor/n;
+  for(let k=1;k<=n;k++){
+    const juros=saldo*i;
+    let parcela,amort;
+    if(sist==='PRICE'){parcela=parcPRICE;amort=parcela-juros;}
+    else{amort=amortSAC;parcela=amort+juros;}
+    saldo=Math.max(0,saldo-amort);
+    const quit=k<=pagas;
+    rows.push({mes:addMonths(data,k-1),parcela:k,valor:r2(parcela),amort:r2(amort),total:r2(parcela),saldo:r2(saldo),quitado:quit,status:quit?'PAGO':'A VENCER'});
+  }
+  return rows;
+}
+function schedLinear(total,n,data,pagas,tipo){
+  const rows=[];const v=total/n;
+  for(let k=1;k<=n;k++){
+    const quit=k<=pagas;
+    if(tipo==='doc') rows.push({parcela:k,rtbi:r2(v),cartorio:0,jurosMulta:0,total:r2(v),quitado:quit,status:quit?'PAGO':'A VENCER'});
+    else if(tipo==='obra'){const ev=Math.min(1,k/n);rows.push({venc:addMonths(data,k-1),parcela:k,valor:r2(v),evolucao:r4(ev),total:r2(v),quitado:quit,status:quit?'PAGO':'A VENCER'});}
+    else rows.push({venc:addMonths(data,k-1),parcela:String(k),valor:r2(v),pago:quit?r2(v):null,reajuste:0,jurosMulta:0,total:quit?r2(v):0,quitado:quit,status:quit?'PAGO':'A VENCER'});
+  }
+  return rows;
+}
+const r2=n=>Math.round(n*100)/100;
+const r4=n=>Math.round(n*1e6)/1e6;
+
+function simulate(saldo,taxa,parcela,extra,unico){
+  let s=saldo-(unico||0),juros=0,meses=0,desemb=(unico||0);const pay=parcela+(extra||0);
+  if(pay<=s*taxa) return {meses:Infinity,juros:Infinity,desemb:Infinity};
+  while(s>0.005&&meses<6000){const j=s*taxa;juros+=j;let pr=pay-j;if(pr>s)pr=s;s-=pr;desemb+=Math.min(pay,pr+j);meses++;}
+  return {meses,juros:r2(juros),desemb:r2(desemb)};
+}
+
+/* ---------- montar DADOS ---------- */
+function build(){
+  const valor=num('f_valor'),i=num('f_juros')/100,n=int('f_nparc'),sist=val('f_sist');
+  const fin=schedFin(valor,i,n,sist,val('f_data'),int('f_pagas'));
+  const finPagas=fin.filter(x=>x.quitado);
+  const finTotalPago=finPagas.reduce((s,x)=>s+x.valor,0);
+  const saldoAtual=fin.length?(fin[Math.min(int('f_pagas'),n)-1]?fin[int('f_pagas')-1]?.saldo:valor):valor;
+  const saldoAtu = int('f_pagas')>0 && fin[int('f_pagas')-1] ? fin[int('f_pagas')-1].saldo : valor;
+
+  const entrada = chk('t_ent') ? schedLinear(num('e_total'),int('e_n'),val('e_data'),int('e_pagas'),'ent') : [];
+  const doc     = chk('t_doc') ? schedLinear(num('d_total'),int('d_n'),'2024-01',int('d_pagas'),'doc') : [];
+  const juros   = chk('t_obra')? schedLinear(num('ob_total'),int('ob_n'),val('ob_data'),int('ob_pagas'),'obra') : [];
+
+  const ePago=entrada.filter(x=>x.quitado).reduce((s,x)=>s+(x.pago||x.total||0),0);
+  const ePrev=entrada.reduce((s,x)=>s+(x.valor||0),0);
+  const dPago=doc.filter(x=>x.quitado).reduce((s,x)=>s+x.total,0);
+  const dPrev=doc.reduce((s,x)=>s+x.total,0);
+  const oPago=juros.filter(x=>x.quitado).reduce((s,x)=>s+x.total,0);
+  const oPrev=juros.reduce((s,x)=>s+x.total,0);
+
+  const totalInvestido=r2(ePago+dPago+oPago+finTotalPago);
+  const custoTotal=r2(ePrev+dPrev+oPrev+valor);
+  const faltaPagar=r2(custoTotal-totalInvestido);
+
+  const parcRep = sist==='PRICE' ? (fin[0]?fin[0].valor:0) : (fin[0]?fin[0].valor:0);
+  const base=simulate(saldoAtu,i,parcRep,0,0);
+  const aporteDefault=Math.round(parcRep*0.15/10)*10||100;
+  const sim2=simulate(saldoAtu,i,parcRep,aporteDefault,0);
+
+  // desembolso acumulado por ano (todas as etapas)
+  const ev={};
+  function acc(arr,kData,kVal){arr.forEach(x=>{const a=anoDe(x[kData]||'');if(a)ev[a]=(ev[a]||0)+(x[kVal]||x.valor||0);});}
+  acc(entrada,'venc','valor');acc(doc,'_','total');acc(juros,'venc','valor');acc(fin,'mes','valor');
+  // doc sem data: distribui no 1º ano da entrada/obra ou 2024
+  if(doc.length){const a0=anoDe(entrada[0]?entrada[0].venc:(juros[0]?juros[0].venc:fin[0].mes));doc.forEach(()=>{});ev[a0]=(ev[a0]||0)+dPrev;}
+  const anos=Object.keys(ev).map(Number).sort((a,b)=>a-b);
+  let acum=0;const desembolso=anos.map(a=>{acum+=ev[a];return {ano:a,acum:r2(acum)};});
+
+  const nome=val('f_nome')||'Comprador';
+  const inst=val('f_inst')||'Meu imóvel';
+  const user=(val('f_user')||'comprador').toLowerCase().trim();
+  const pass=val('f_pass')||'1234';
+  const role=val('f_role')||'Proprietário';
+  const useAuth=chk('t_auth');
+  const authUrl=useAuth?(val('f_authurl')||'').trim():'';
+  // com auth: senha NÃO vai para o dados.js público (fica hasheada no Sheets)
+  const users = useAuth ? [
+      {user:user,nome:nome,perfil:'proprietario',roleLabel:role},
+      {user:'admin',nome:'Isaac Nogueira',perfil:'admin'}
+    ] : [
+      {user:user,pass:pass,nome:nome,perfil:'proprietario',roleLabel:role},
+      {user:'admin',pass:'admin',nome:'Isaac Nogueira',perfil:'admin'}
+    ];
+
+  return {
+    _meta:{produto:'Gerenciador de Financiamento',imovel:inst,fonte:'Configurador VIZIO',gerado:new Date().toLocaleDateString('pt-BR')},
+    _cfg:{produto:'Gerenciador de Financiamento',instancia:inst,propLabel:role,authUrl:authUrl},
+    _users:users,
+    resumo:{
+      entradaPago:r2(ePago),entradaPrev:r2(ePrev),entradaPct:ePrev?r4(ePago/ePrev):0,
+      docPago:r2(dPago),docPrev:r2(dPrev),docPct:dPrev?r4(dPago/dPrev):0,
+      jurosPago:r2(oPago),jurosPrev:r2(oPrev),jurosPct:oPrev?r4(oPago/oPrev):0,
+      finSaldo:r2(saldoAtu),totalInvestido,custoTotal,faltaPagar
+    },
+    finMeta:{saldoInicial:r2(valor),jurosMensal:r4(i),totalPago:r2(finTotalPago),saldoAtual:r2(saldoAtu),parcelasPagas:int('f_pagas'),parcelasRestantes:n-int('f_pagas'),pctQuitado:r4(finTotalPago/(valor||1))},
+    sim:{aporteExtra:aporteDefault,aporteUnico:0,juros:r4(i),parcela:r2(parcRep),saldo:r2(saldoAtu),mesesBase:isFinite(base.meses)?base.meses:0,mesesSim:isFinite(sim2.meses)?sim2.meses:0,jurosBase:base.juros,jurosSim:sim2.juros,totalBase:base.desemb,totalSim:sim2.desemb},
+    entrada,doc,juros,fin,desembolso
+  };
+}
+
+function dadosJS(D){
+  return '/* VIZIO · Gerenciador de Financiamento — instância gerada pelo Configurador */\n'+
+         '/* Imóvel: '+D._meta.imovel+' · gerado '+D._meta.gerado+' */\n'+
+         'const DADOS='+JSON.stringify(D)+';\n';
+}
+
+let CUR=null;
+function recalc(){
+  toggle();
+  try{ CUR=build(); }catch(e){ document.getElementById('pv_note').textContent='Erro: '+e.message; return; }
+  const D=CUR,r=D.resumo;
+  document.getElementById('pv_inst').textContent=(D._meta.imovel||'—')+' · '+(D._users[0].nome||'');
+  const pctGeral=r.custoTotal?r.totalInvestido/r.custoTotal:0;
+  document.getElementById('pv_k').innerHTML=
+    `<div class="k"><div class="n">${BRL(r.totalInvestido)}</div><div class="l">Já investido</div></div>`+
+    `<div class="k"><div class="n">${BRL(r.custoTotal)}</div><div class="l">Custo total</div></div>`+
+    `<div class="k"><div class="n">${BRL(r.faltaPagar)}</div><div class="l">Falta pagar</div></div>`+
+    `<div class="k"><div class="n">${PCT(pctGeral)}</div><div class="l">Concluído</div></div>`;
+  const eco=D.sim.jurosBase-D.sim.jurosSim;
+  document.getElementById('pv_kpis').innerHTML=
+    `<div class="kpi"><div class="l">Financiamento (${val('f_sist')})</div><div class="v">${BRL(D.finMeta.saldoInicial)}</div></div>`+
+    `<div class="kpi"><div class="l">1ª parcela</div><div class="v">${BRL2(D.fin[0]?D.fin[0].valor:0)}</div></div>`+
+    `<div class="kpi"><div class="l">Última parcela</div><div class="v">${BRL2(D.fin.length?D.fin[D.fin.length-1].valor:0)}</div></div>`+
+    `<div class="kpi"><div class="l">Aporte ${BRL(D.sim.aporteExtra)}/mês economiza</div><div class="v" style="color:var(--success)">${BRL(eco>0?eco:0)}</div></div>`;
+  document.getElementById('pv_fin').innerHTML=D.fin.slice(0,6).map(x=>
+    `<tr><td>${x.parcela}</td><td>${x.mes.split('-').reverse().join('/')}</td><td>${BRL2(x.valor)}</td><td>${BRL2(x.amort)}</td><td>${BRL2(x.saldo)}</td></tr>`).join('');
+  const partes=[`<b>${D.fin.length}</b> parcelas de financiamento`];
+  if(D.entrada.length)partes.push(`${D.entrada.length} de entrada`);
+  if(D.doc.length)partes.push(`${D.doc.length} de documentação`);
+  if(D.juros.length)partes.push(`${D.juros.length} de juros de obra`);
+  document.getElementById('pv_note').innerHTML='Gera: '+partes.join(' · ')+'. Simulador é uma estimativa (parcela representativa + juros sobre saldo).';
+}
+function baixar(){
+  if(!CUR)recalc();
+  const blob=new Blob([dadosJS(CUR)],{type:'text/javascript'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='dados.js';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+async function copiar(){
+  if(!CUR)recalc();
+  try{await navigator.clipboard.writeText(dadosJS(CUR));alert('dados.js copiado para a área de transferência.');}
+  catch(e){alert('Não foi possível copiar automaticamente. Use o botão de download.');}
+}
+function download(name,content,type){
+  const blob=new Blob([content],{type:type||'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+async function sha256hex(s){
+  const b=new TextEncoder().encode(s);
+  const d=await crypto.subtle.digest('SHA-256',b);
+  return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function impRows(D){
+  return {
+    entrada:D.entrada.map(e=>({parcela:e.parcela,venc:e.venc,valor:e.valor,pago:e.pago,reajuste:e.reajuste,quitado:e.quitado?'Sim':'Não',status:e.status})),
+    doc:D.doc.map(e=>({parcela:e.parcela,rtbi:e.rtbi,cartorio:e.cartorio,total:e.total,quitado:e.quitado?'Sim':'Não',status:e.status})),
+    obra:D.juros.map(e=>({parcela:e.parcela,venc:e.venc,valor:e.valor,evolucao:e.evolucao!=null?(e.evolucao*100).toFixed(1)+'%':'',quitado:e.quitado?'Sim':'Não',status:e.status})),
+    financiamento:D.fin.map(e=>({parcela:e.parcela,mes:e.mes,valor:e.valor,amort:e.amort,saldo:e.saldo,quitado:e.quitado?'Sim':'Não',status:e.status}))
+  };
+}
+async function gerarBackend(){
+  const D=CUR||build();
+  if(!crypto||!crypto.subtle){alert('Geração de backend exige HTTPS (crypto.subtle). Abra o configurador via página segura.');return;}
+  const sheetid=(val('f_sheetid')||'COLE_O_ID_DA_PLANILHA_AQUI').trim();
+  const user=(val('f_user')||'comprador').toLowerCase().trim();
+  const pass=val('f_pass')||'1234';
+  const nome=val('f_nome')||'Comprador';
+  const role=val('f_role')||'Proprietário';
+  const hUser=await sha256hex(pass), hAdmin=await sha256hex('admin');
+  const seed=[[user,hUser,nome,'proprietario',role],['admin',hAdmin,'Isaac Nogueira','admin','']];
+  const code=BACKEND_TPL
+    .replace('__SHEET_ID__',sheetid)
+    .replace('__SEED__',JSON.stringify(seed))
+    .replace('__IMPORT__',JSON.stringify(impRows(D)));
+  download('Code.gs',code,'text/javascript');
+}
+const BACKEND_TPL = [
+"/** Gerenciador de Financiamento by VIZIO — Backend COM AUTH (gerado pelo Configurador)",
+" * Cole na planilha-banco (Extensões > Apps Script). Rode setup(), setupUsuarios() e importarTudo().",
+" * Depois: Implementar > App da Web (Executar como Eu, Acesso Qualquer pessoa) e copie a URL /exec",
+" * para _cfg.authUrl no dados.js. Segurança nível piloto (SHA-256 sem sal) — migrar p/ Supabase ao escalar. */",
+'var SHEET_ID = "__SHEET_ID__";',
+"function ss_(){ return SpreadsheetApp.openById(SHEET_ID); }",
+'var FIELDS = { entrada:["parcela","venc","valor","pago","reajuste","quitado","status"], doc:["parcela","rtbi","cartorio","total","quitado","status"], obra:["parcela","venc","valor","evolucao","quitado","status"], financiamento:["parcela","mes","valor","amort","saldo","quitado","status"] };',
+'function sheetName(m){ return "M_"+m; }',
+"function setup(){ var ss=ss_(); Object.keys(FIELDS).forEach(function(mod){ var sh=ss.getSheetByName(sheetName(mod))||ss.insertSheet(sheetName(mod)); if(sh.getLastRow()===0) sh.appendRow(FIELDS[mod]); }); }",
+'var USUARIOS_SEED = __SEED__;',
+'function setupUsuarios(){ var ss=ss_(); var sh=ss.getSheetByName("_USUARIOS")||ss.insertSheet("_USUARIOS"); sh.clearContents(); sh.appendRow(["user","passHash","nome","perfil","roleLabel"]); if(USUARIOS_SEED.length) sh.getRange(2,1,USUARIOS_SEED.length,5).setValues(USUARIOS_SEED); }',
+'function doLogin_(u,h){ var sh=ss_().getSheetByName("_USUARIOS"); if(!sh||sh.getLastRow()<2) return {ok:false}; var rows=sh.getRange(2,1,sh.getLastRow()-1,5).getValues(); for(var i=0;i<rows.length;i++){ if(String(rows[i][0]).toLowerCase()===String(u||"").toLowerCase() && String(rows[i][1])===String(h||"")) return {ok:true,nome:rows[i][2],perfil:rows[i][3],roleLabel:rows[i][4]||""}; } return {ok:false}; }',
+"function readAll_(){ var ss=ss_(); var dados={}; Object.keys(FIELDS).forEach(function(mod){ var sh=ss.getSheetByName(sheetName(mod)); var arr=[]; if(sh&&sh.getLastRow()>1){ var v=sh.getRange(2,1,sh.getLastRow()-1,FIELDS[mod].length).getValues(); v.forEach(function(row){ var r={}; FIELDS[mod].forEach(function(k,i){ r[k]=row[i]; }); arr.push(r); }); } dados[mod]=arr; }); return {ok:true,dados:dados}; }",
+'function doGet(e){ var p=(e&&e.parameter)||{}; var out=(p.action==="login")?doLogin_(p.u,p.h):readAll_(); var txt=JSON.stringify(out); if(p.callback) return ContentService.createTextOutput(p.callback+"("+txt+")").setMimeType(ContentService.MimeType.JAVASCRIPT); return ContentService.createTextOutput(txt).setMimeType(ContentService.MimeType.JSON); }',
+"function jsonOut_(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }",
+'function doPost(e){ try{ var body=JSON.parse(e.postData.contents); var mod=body.modulo,acao=body.acao,reg=body.registro||{},idx=body.indice; if(!FIELDS[mod]) return jsonOut_({ok:false,erro:"modulo invalido"}); var sh=ss_().getSheetByName(sheetName(mod))||ss_().insertSheet(sheetName(mod)); if(sh.getLastRow()===0) sh.appendRow(FIELDS[mod]); var cols=FIELDS[mod]; var linha=cols.map(function(k){ return reg[k]!=null?reg[k]:""; }); if(acao==="create") sh.appendRow(linha); else if(acao==="update") sh.getRange(Number(idx)+2,1,1,cols.length).setValues([linha]); else if(acao==="delete") sh.deleteRow(Number(idx)+2); else return jsonOut_({ok:false,erro:"acao invalida"}); return jsonOut_({ok:true}); }catch(err){ return jsonOut_({ok:false,erro:String(err)}); } }',
+'var IMPORT = __IMPORT__;',
+'var FIELDS_IMP = FIELDS;',
+'function importarTudo(){ var ss=ss_(); Object.keys(FIELDS_IMP).forEach(function(mod){ var sh=ss.getSheetByName("M_"+mod)||ss.insertSheet("M_"+mod); sh.clearContents(); sh.appendRow(FIELDS_IMP[mod]); var cols=FIELDS_IMP[mod]; var rows=(IMPORT[mod]||[]).map(function(r){ return cols.map(function(k){ return r[k]!=null?r[k]:""; }); }); if(rows.length) sh.getRange(2,1,rows.length,cols.length).setValues(rows); }); }'
+].join("\n");
+recalc();
+</script>
+<script>(function(){var s=null;try{s=JSON.parse(sessionStorage.getItem("vizio_fin_sess")||"null");}catch(e){}if(!s||!s.isAdmin){document.body.innerHTML='<div style="font-family:Inter,system-ui,sans-serif;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;padding:20px">'+'<div><div style="font-size:2rem;margin-bottom:8px">\u{1F512}</div><h2 style="margin:0 0 6px">Acesso restrito</h2>'+'<p style="color:#98A2B3;max-width:420px">O Configurador é exclusivo de administradores (Isaac e Sarah). Entre pelo Gerenciador com uma conta de administrador.</p></div></div>';}})();</script>
+</body>
+</html>

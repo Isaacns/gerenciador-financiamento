@@ -74,7 +74,7 @@ function loadAll(){
   });
 }
 function entrar(perfil,email){
-  if(window.setSession) window.setSession({nome:perfil.nome||email, perfil:perfil.papel||"proprietario", user:email, roleLabel:perfil.prop_label||""});
+  if(window.setSession) window.setSession({nome:perfil.nome||email, perfil:perfil.papel||"proprietario", user:email, roleLabel:perfil.prop_label||"", isAdmin:!!perfil.is_admin});
 }
 
 /* ----- login (substitui o doLogin do index) ----- */

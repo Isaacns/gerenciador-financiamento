@@ -265,6 +265,7 @@ function jsonp(url,cb){
   });
 }
 function setSession(s){
+  if(s&&s.isAdmin===undefined)s.isAdmin=(s.perfil==='admin');
   SESSION=s;
   try{sessionStorage.setItem('vizio_fin_sess',JSON.stringify(SESSION));}catch(e){}
   startApp();
@@ -312,14 +313,15 @@ const MODS=[
   {id:'doc',nome:'Documentação',sub:'RTBI + Cartório',grp:'Etapas de pagamento',roles:['admin','proprietario'],ready:true,desc:'Custos de registro e cartório.'},
   {id:'obra',nome:'Juros de Obra',sub:'Evolução da obra',grp:'Etapas de pagamento',roles:['admin','proprietario'],ready:true,desc:'Juros de obra e avanço da construção.'},
   {id:'financiamento',nome:'Financiamento',sub:'SAC · 420 parcelas',grp:'Etapas de pagamento',roles:['admin','proprietario'],ready:true,desc:'Saldo devedor e amortização do banco.'},
-  {id:'simulador',nome:'Simulador',sub:'Amortização antecipada',grp:'Ferramentas',roles:['admin','proprietario'],ready:true,desc:'Simule aportes e veja a economia de juros.'}
+  {id:'simulador',nome:'Simulador',sub:'Amortização antecipada',grp:'Ferramentas',roles:['admin','proprietario'],ready:true,desc:'Simule aportes e veja a economia de juros.'},
+  {id:'configurador',nome:'Configurador',sub:'Nova instância',grp:'Administração',roles:['admin'],adminOnly:true,ready:true,desc:'Gere a configuração de um novo comprador (somente admins).'}
 ];
 const fmtBRL=n=>'R$ '+(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtBRL2=n=>'R$ '+(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtN=n=>Math.round(n||0).toLocaleString('pt-BR');
 const fmtPct=n=>(n*100).toFixed(1).replace('.',',')+'%';
 const dBR=s=>{if(!s||s==='—')return '—';const p=String(s).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s;};
-function can(m){return m.roles.includes(SESSION.perfil);}
+function can(m){return m.adminOnly ? !!(SESSION&&SESSION.isAdmin) : m.roles.includes(SESSION.perfil);}
 
 /* ---- agregações derivadas dos arrays ---- */
 function aggEntrada(){const d=DADOS.entrada;let pago=0,vencer=0,prev=0,nPagos=0,nVencer=0;
@@ -357,7 +359,7 @@ function navigate(id){
   document.getElementById('crumb').childNodes[0].nodeValue=m.nome;
   document.getElementById('crumbSub').textContent=m.sub||'';
   const v=document.getElementById('view');
-  ({home:renderHome,visao:renderVisao,entrada:renderEntrada,doc:renderDoc,obra:renderObra,financiamento:renderFin,simulador:renderSim}[id]||renderHome)(v);
+  ({home:renderHome,visao:renderVisao,entrada:renderEntrada,doc:renderDoc,obra:renderObra,financiamento:renderFin,simulador:renderSim,configurador:renderConfigurador}[id]||renderHome)(v);
   window.scrollTo(0,0);
 }
 function sig(){return `<div class="sig"><div class="by"><b>Gerenciador de Financiamento</b> <span>by</span> <img class="sym" src="vizio-symbol-dark.png"> <img class="wm" src="vizio-wordmark-dark.png"> · Sua planilha virou software.</div><span>Dados: ${DADOS._meta.fonte} · ${DADOS._meta.gerado}</span></div>`;}
@@ -378,6 +380,14 @@ function kvOf(id){const r=DADOS.resumo;
   if(id==='financiamento')return `Saldo <b>${fmtBRL(DADOS.finMeta.saldoAtual)}</b> · 420x`;
   if(id==='simulador')return `Economize até <b>${fmtBRL(DADOS.sim.jurosBase-DADOS.sim.jurosSim)}</b>`;
   return '';
+}
+function renderConfigurador(v){
+  document.body.classList.remove('home');
+  v.innerHTML='<div class="card" style="padding:14px 16px">'+
+    '<h2 style="margin:0 0 4px">Configurador de instância</h2>'+
+    '<div class="cap" style="font-size:.82rem;color:#667085;margin-bottom:12px">Gere a configuração de um novo comprador. Área exclusiva de administradores.</div>'+
+    '<iframe src="configurador.html" title="Configurador" style="width:100%;height:78vh;border:0;border-radius:12px;background:#0C0F18"></iframe>'+
+  '</div>';
 }
 function renderHome(v){
   const r=DADOS.resumo,fm=DADOS.finMeta;

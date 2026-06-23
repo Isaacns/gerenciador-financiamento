@@ -64,6 +64,7 @@ function cfg(id){
 /* ---------- RECÁLCULO: resumo + finMeta a partir dos arrays (corrige "não atualiza") ---------- */
 function sumPrev(arr,valK){ return arr.reduce(function(s,e){return s+(Number(e[valK]||e.valor||0));},0); }
 function sumPago(arr,valK){ return arr.filter(isPago).reduce(function(s,e){return s+(Number(e.pago!=null?e.pago:(e[valK]||e.valor||0)));},0); }
+function finOriginal(fin){ if(!fin||!fin.length) return 0; var f0=fin[0]; var v=(Number(f0.saldo)||0)+(Number(f0.amort)||0); if(v>0) return v; return fin.reduce(function(m,e){return Math.max(m,Number(e.saldo)||0);},0); }
 function recompute(){
   var d=DADOS; if(!d.resumo)d.resumo={}; if(!d.finMeta)d.finMeta={};
   // entrada
@@ -76,7 +77,7 @@ function recompute(){
   var oPrev=sumPrev(d.juros,"total"); var oPago=d.juros.filter(isPago).reduce(function(s,e){return s+(e.total||e.valor||0);},0);
   d.resumo.jurosPrev=r2(oPrev); d.resumo.jurosPago=r2(oPago); d.resumo.jurosPct=oPrev?oPago/oPrev:0;
   // financiamento
-  var cF=cfg("financiamento"); var saldoIni=cF.total>0?cF.total:(d.finMeta.saldoInicial||0);
+  var cF=cfg("financiamento"); var saldoIni=cF.total>0?cF.total:finOriginal(d.fin);
   var pagos=d.fin.filter(isPago); var amortPaid=pagos.reduce(function(s,e){return s+(e.amort||0);},0);
   var finTotalPago=pagos.reduce(function(s,e){return s+(e.valor||0);},0);
   d.finMeta.saldoInicial=r2(saldoIni);
