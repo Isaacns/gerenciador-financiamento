@@ -132,7 +132,7 @@ function buildSignup(){
     '<div class="field"><label>Im\u00f3vel (ex.: Ap\u00ea 502 \u2014 Ed. Aurora)</label><input id="su_inst"></div>'+
     '<div class="field"><label>E-mail</label><input id="su_email" type="email" autocomplete="email"></div>'+
     '<div class="field"><label>Senha (m\u00edn. 6)</label><input id="su_pass" type="password" autocomplete="new-password"></div>'+
-    '<button class="btn-primary" type="submit">Criar minha conta</button>'+
+    '<label style="display:flex;gap:8px;align-items:flex-start;font-size:.8rem;color:#475467;margin:4px 0 10px;text-align:left"><input type="checkbox" id="su_consent" style="margin-top:3px"> <span>Li e aceito os <a href="legal.html" target="_blank" style="color:#1C64F0;font-weight:700">Termos e a Política de Privacidade</a>.</span></label>'+'<button class="btn-primary" type="submit">Criar minha conta</button>'+
     '<div class="login-hint"><a href="javascript:void(0)" id="toLogin" style="color:#1C64F0;font-weight:700;text-decoration:none">J\u00e1 tenho conta \u2014 entrar</a></div>'+
     '<div class="login-tag">Sua planilha virou software. \u00b7 um produto INPERSON</div>';
   loginDiv.appendChild(sc);
@@ -145,6 +145,7 @@ window.doSignup=function(ev){ if(ev)ev.preventDefault();
   var pass=document.getElementById("su_pass").value||"";
   var err=document.getElementById("signupErr"); err.style.color="";
   if(!email||pass.length<6){ err.textContent="Informe e-mail e senha (m\u00edn. 6 caracteres)."; return false; }
+  if(!document.getElementById("su_consent")||!document.getElementById("su_consent").checked){ err.textContent="É preciso aceitar os Termos e a Política de Privacidade."; return false; }
   err.textContent="Criando sua conta...";
   SB.auth.signUp({email:email,password:pass,options:{data:{nome:nome,instancia:inst},emailRedirectTo:location.href.split("#")[0]}}).then(function(r){
     if(r.error){ err.textContent="Erro: "+r.error.message; return; }
