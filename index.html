@@ -621,6 +621,7 @@ function fillFin(){
 function simulate(saldo,taxa,parcela,aporteExtra,aporteUnico){
   let s=saldo-(aporteUnico||0),juros=0,meses=0,desemb=(aporteUnico||0);
   const pay=parcela+(aporteExtra||0);
+  if(s<=0.005)return {meses:0,juros:0,desemb:0}; // sem divida
   if(pay<=s*taxa)return {meses:Infinity,juros:Infinity,desemb:Infinity}; // nunca amortiza
   while(s>0.005&&meses<5000){
     const j=s*taxa;juros+=j;
