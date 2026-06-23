@@ -84,8 +84,8 @@ window.doLogin=function(ev){ ev.preventDefault();
   var err=document.getElementById("loginErr"); err.textContent="Entrando…";
   SB.auth.signInWithPassword({email:email,password:pass}).then(function(r){
     if(r.error){ err.textContent="E-mail ou senha inválidos."; return; }
-    UID=r.data.user.id;
-    loadAll().then(function(perfil){ entrar(perfil,email); }).catch(function(){ err.textContent="Erro ao carregar seus dados."; });
+    var u=r.data.user; UID=u.id;
+    loadAll().then(function(perfil){ return ensurePerfil(u,perfil); }).then(function(perfil){ entrar(perfil,email); }).catch(function(){ err.textContent="Erro ao carregar seus dados."; });
   });
   return false;
 };
@@ -102,18 +102,66 @@ SB.auth.onAuthStateChange(function(evt){
 
 /* ----- sessão persistida: se já está logado, entra direto ----- */
 SB.auth.getSession().then(function(s){
-  if(s.data&&s.data.session){ UID=s.data.session.user.id; var email=s.data.session.user.email;
-    loadAll().then(function(perfil){ entrar(perfil,email); }); }
+  if(s.data&&s.data.session){ var u=s.data.session.user; UID=u.id; var email=u.email;
+    loadAll().then(function(perfil){ return ensurePerfil(u,perfil); }).then(function(perfil){ entrar(perfil,email); }); }
 });
 
 /* ----- UI: tela de login (e-mail + esqueci senha) e botão alterar senha ----- */
+function ensurePerfil(u,perfil){
+  if(perfil&&perfil.user_id) return Promise.resolve(perfil);
+  var md=(u&&u.user_metadata)||{};
+  var row={user_id:u.id,instancia:md.instancia||"Meu im\u00f3vel",nome:md.nome||u.email,papel:"proprietario",prop_label:"Propriet\u00e1rio"};
+  return SB.from("fin_perfis").upsert(row,{onConflict:"user_id"}).then(function(){return row;}).catch(function(){return row;});
+}
+function toggleSignup(show){
+  var sc=document.getElementById("signupCard");
+  var lc=document.querySelector("#login form.login-card:not(#signupCard)");
+  if(sc)sc.style.display=show?"":"none";
+  if(lc)lc.style.display=show?"none":"";
+}
+function buildSignup(){
+  var su=document.getElementById("lgSignup"); if(su)su.onclick=function(){toggleSignup(true);};
+  if(document.getElementById("signupCard"))return;
+  var loginDiv=document.getElementById("login"); if(!loginDiv)return;
+  var sc=document.createElement("form"); sc.className="login-card"; sc.id="signupCard"; sc.style.display="none";
+  sc.onsubmit=function(ev){return window.doSignup(ev);};
+  sc.innerHTML='<div class="lg"><img class="sym" src="vizio-symbol-dark.png"><img class="wm" src="vizio-wordmark-dark.png"></div>'+
+    '<h1>Criar conta</h1><div class="sb">Cadastre-se para gerenciar seu financiamento</div>'+
+    '<div class="login-err" id="signupErr"></div>'+
+    '<div class="field"><label>Seu nome</label><input id="su_nome" autocomplete="name"></div>'+
+    '<div class="field"><label>Im\u00f3vel (ex.: Ap\u00ea 502 \u2014 Ed. Aurora)</label><input id="su_inst"></div>'+
+    '<div class="field"><label>E-mail</label><input id="su_email" type="email" autocomplete="email"></div>'+
+    '<div class="field"><label>Senha (m\u00edn. 6)</label><input id="su_pass" type="password" autocomplete="new-password"></div>'+
+    '<button class="btn-primary" type="submit">Criar minha conta</button>'+
+    '<div class="login-hint"><a href="javascript:void(0)" id="toLogin" style="color:#1C64F0;font-weight:700;text-decoration:none">J\u00e1 tenho conta \u2014 entrar</a></div>'+
+    '<div class="login-tag">Sua planilha virou software. \u00b7 um produto INPERSON</div>';
+  loginDiv.appendChild(sc);
+  var tl=document.getElementById("toLogin"); if(tl)tl.onclick=function(){toggleSignup(false);};
+}
+window.doSignup=function(ev){ if(ev)ev.preventDefault();
+  var nome=(document.getElementById("su_nome").value||"").trim();
+  var inst=(document.getElementById("su_inst").value||"").trim()||"Meu im\u00f3vel";
+  var email=(document.getElementById("su_email").value||"").trim();
+  var pass=document.getElementById("su_pass").value||"";
+  var err=document.getElementById("signupErr"); err.style.color="";
+  if(!email||pass.length<6){ err.textContent="Informe e-mail e senha (m\u00edn. 6 caracteres)."; return false; }
+  err.textContent="Criando sua conta...";
+  SB.auth.signUp({email:email,password:pass,options:{data:{nome:nome,instancia:inst},emailRedirectTo:location.href.split("#")[0]}}).then(function(r){
+    if(r.error){ err.textContent="Erro: "+r.error.message; return; }
+    var u=r.data&&r.data.user, session=r.data&&r.data.session;
+    if(session&&u){ UID=u.id; ensurePerfil(u,{}).then(function(){return loadAll();}).then(function(perfil){ entrar(perfil&&perfil.user_id?perfil:{nome:nome,papel:"proprietario",prop_label:"Propriet\u00e1rio"},email); }); }
+    else { err.style.color="#15803D"; err.textContent="Conta criada! Confirme pelo link enviado ao seu e-mail e depois entre."; }
+  });
+  return false;
+};
 function injectLoginUI(){
   var u=document.getElementById("u"); if(u){ u.type="email"; u.placeholder="seu@email.com"; }
   var lbls=document.querySelectorAll("#login .field label"); if(lbls[0])lbls[0].textContent="E-mail";
   var hint=document.getElementById("lgHint");
-  if(hint){ hint.innerHTML='<a href="javascript:void(0)" id="lgForgot" style="color:#1C64F0;font-weight:700;text-decoration:none">Esqueci minha senha</a>'; }
+  if(hint){ hint.innerHTML='<a href="javascript:void(0)" id="lgForgot" style="color:#1C64F0;font-weight:700;text-decoration:none">Esqueci minha senha</a> \u00b7 <a href="javascript:void(0)" id="lgSignup" style="color:#1C64F0;font-weight:700;text-decoration:none">Criar conta</a>'; }
   var fg=document.getElementById("lgForgot");
   if(fg)fg.onclick=function(){ var em=prompt("Digite seu e-mail para receber o link de recuperação:",(document.getElementById("u").value||"")); if(em){ window.VZSUPA.reset(em).then(function(r){ alert(r.error?("Erro: "+r.error.message):("Enviamos um link de recuperação para "+em+". Confira seu e-mail.")); }); } };
+  buildSignup();
 }
 if(document.readyState!=="loading")injectLoginUI(); else document.addEventListener("DOMContentLoaded",injectLoginUI);
 
