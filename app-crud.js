@@ -43,8 +43,9 @@ var SCHEMAS={
     {k:"parcela",l:"Parcela",t:"number"},{k:"venc",l:"Vencimento",t:"date"},{k:"valor",l:"Valor",t:"money"},
     {k:"evolucao",l:"Evolução da obra",t:"text"},{k:"quitado",l:"Pago?",t:"check"},{k:"status",l:"Status",t:"status"}
   ]},
-  financiamento:{label:"Parcela do financiamento",rep:"Financiamento",hasCfg:true,kind:"fin",fields:[
-    {k:"parcela",l:"Parcela",t:"number"},{k:"mes",l:"Mês",t:"date"},{k:"valor",l:"Parcela",t:"money"},
+  financiamento:{label:"Parcela do financiamento",rep:"Financiamento",hasCfg:true,kind:"fin",pagoFill:"pago",fields:[
+    {k:"parcela",l:"Parcela",t:"number"},{k:"mes",l:"Mês",t:"date"},{k:"valor",l:"Parcela (devida)",t:"money"},
+    {k:"pago",l:"Valor pago",t:"money"},{k:"reajuste",l:"Diferença (corrigida)",t:"money",auto:true},
     {k:"amort",l:"Amortização",t:"money"},{k:"saldo",l:"Saldo devedor",t:"money"},{k:"quitado",l:"Pago?",t:"check"},{k:"status",l:"Status",t:"status"}
   ]}
 };
@@ -80,7 +81,7 @@ function recompute(){
   // financiamento
   var cF=cfg("financiamento"); var saldoIni=cF.total>0?cF.total:finOriginal(d.fin);
   var pagos=d.fin.filter(isPago); var amortPaid=pagos.reduce(function(s,e){return s+(e.amort||0);},0);
-  var finTotalPago=pagos.reduce(function(s,e){return s+(e.valor||0);},0);
+  var finTotalPago=pagos.reduce(function(s,e){return s+(e.pago!=null?Number(e.pago):(e.valor||0));},0);
   d.finMeta.saldoInicial=r2(saldoIni);
   if(cF.taxa>0) d.finMeta.jurosMensal=cF.taxa/100;
   d.finMeta.totalPago=r2(finTotalPago);
@@ -110,7 +111,7 @@ function gerar(id){
     var V=c.total||0, i=(c.taxa||0)/100, n=parseInt(c.meses)||0, sist=c.tipo||"SAC";
     if(V<=0||n<=0){toast("Preencha valor financiado e nº de meses.","warn");return;}
     var saldo=V, amortSAC=V/n, parcP=i>0?V*i/(1-Math.pow(1+i,-n)):V/n;
-    for(var k=1;k<=n;k++){ var juros=saldo*i,parc,amort; if(sist==="PRICE"){parc=parcP;amort=parc-juros;}else{amort=amortSAC;parc=amort+juros;} saldo=Math.max(0,saldo-amort); out.push({parcela:k,mes:addMonths(c.data||"2027-01",k-1),valor:r2(parc),amort:r2(amort),total:r2(parc),saldo:r2(saldo),quitado:false,status:"A VENCER"}); }
+    for(var k=1;k<=n;k++){ var juros=saldo*i,parc,amort; if(sist==="PRICE"){parc=parcP;amort=parc-juros;}else{amort=amortSAC;parc=amort+juros;} saldo=Math.max(0,saldo-amort); out.push({parcela:k,mes:addMonths(c.data||"2027-01",k-1),valor:r2(parc),pago:null,reajuste:null,amort:r2(amort),total:r2(parc),saldo:r2(saldo),quitado:false,status:"A VENCER"}); }
     DADOS.fin=out;
   } else if(id==="doc"){
     var T=c.total||0, nd=c.forma==="avista"?1:(parseInt(c.nParc)||0); if(T<=0||nd<=0){toast("Preencha valor total e nº de parcelas.","warn");return;}
@@ -285,7 +286,7 @@ function togglePago(id,i,checked){
   var sc=SCHEMAS[id],e=rows(id)[i]; e.quitado=!!checked; e.status=checked?"PAGO":"A VENCER";
   if(checked&&sc.pagoFill&&(e[sc.pagoFill]==null||e[sc.pagoFill]==="")) e[sc.pagoFill]=e.valor;
   if(!checked&&sc.pagoFill) e[sc.pagoFill]=null;
-  if(id==="entrada")e.reajuste=correcaoEntrada(e);
+  if(id==="entrada"||id==="financiamento")e.reajuste=correcaoEntrada(e);
   recompute(); persist(id,"update",e,i); manage(id);
 }
 
@@ -317,7 +318,7 @@ function save(id,idx){
     if(f.t==="check")rec.quitado=el.checked; else if(isMoney(f))rec[f.k]=moneyParse(el.value); else if(f.t==="number")rec[f.k]=el.value===""?null:Number(el.value); else rec[f.k]=el.value; });
   rec.status=rec.quitado?"PAGO":"A VENCER";
   if(rec.quitado&&sc.pagoFill&&rec[sc.pagoFill]==null)rec[sc.pagoFill]=rec.valor;
-  if(id==="entrada")rec.reajuste=correcaoEntrada(rec);
+  if(id==="entrada"||id==="financiamento")rec.reajuste=correcaoEntrada(rec);
   if(idx==null)rows(id).push(rec);else rows(id)[idx]=rec;
   recompute(); persist(id,idx==null?"create":"update",rec,idx==null?rows(id).length-1:idx);
   closeForm(); manage(id);

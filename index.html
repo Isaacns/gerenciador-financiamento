@@ -588,6 +588,7 @@ function renderObra(v){
 function renderFin(v){
   const fm=DADOS.finMeta,d=DADOS.fin;
   const pagas=d.filter(x=>x.quitado).length,rest=d.length-pagas;
+  const reajFin=d.filter(x=>x.quitado).reduce((s,x)=>s+(Number(x.reajuste)||0),0);
   const totalContrato=d.reduce((s,x)=>s+(x.valor||0),0);
   const jurosTotal=totalContrato-fm.saldoInicial;
   v.innerHTML=`
@@ -596,12 +597,13 @@ function renderFin(v){
       <div class="kpi ink"><div class="lbl">Valor financiado</div><div class="val">${fmtBRL(fm.saldoInicial)}</div><div class="hint">SAC · ${d.length} parcelas</div></div>
       <div class="kpi warnb"><div class="lbl">Juros do contrato</div><div class="val">${fmtBRL(jurosTotal)}</div><div class="hint">a ${(fm.jurosMensal*100).toFixed(2).replace('.',',')}% a.m. (≈${((Math.pow(1+fm.jurosMensal,12)-1)*100).toFixed(1).replace('.',',')}% a.a.)</div></div>
       <div class="kpi green"><div class="lbl">Quitado</div><div class="val">${fmtPct(fm.pctQuitado)}</div><div class="pbar"><i style="width:${Math.max(1,fm.pctQuitado*100).toFixed(1)}%;background:#16A34A"></i></div></div>
+      <div class="kpi"><div class="lbl">Diferença acumulada</div><div class="val">${fmtBRL(reajFin)}</div><div class="hint">pago − previsto (reajuste)</div></div>
     </div>
     <div class="insight">${svg('simulador')}<div>No sistema <b>SAC</b>, a parcela começa mais alta e cai ao longo do tempo, porque a amortização é fixa e os juros diminuem junto com o saldo. Um aporte mensal extra encurta muito o prazo — teste no <b>Simulador</b>.</div></div>
     <div class="card"><h2>Evolução do saldo devedor</h2><div class="cap">Projeção da dívida ao banco até a quitação (${d[0]?dBR(d[0].mes):''} → ${d[d.length-1]?dBR(d[d.length-1].mes):''}).</div><div class="chartbox tall"><canvas id="cFin"></canvas></div></div>
     <div class="card"><h2>Tabela de amortização</h2>
       <div class="toolbar"><label>Mostrar:</label><select id="selFin" onchange="fillFin()"><option value="60">Primeiras 60</option><option value="120">Primeiras 120</option><option value="all">Todas (420)</option></select><input id="bFin" placeholder="Buscar nº parcela..." oninput="fillFin()" style="flex:1;min-width:150px"></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Parcela</th><th>Mês</th><th class="num">Parcela (R$)</th><th class="num">Amortização</th><th class="num">Saldo devedor</th><th>Status</th></tr></thead><tbody id="tbFin"></tbody></table></div></div>${sig()}`;
+      <div class="tbl-wrap"><table><thead><tr><th>Parcela</th><th>Mês</th><th class="num">Parcela (devida)</th><th class="num">Pago</th><th class="num">Diferença</th><th class="num">Amortização</th><th class="num">Saldo devedor</th><th>Status</th></tr></thead><tbody id="tbFin"></tbody></table></div></div>${sig()}`;
   if(chF)chF.destroy();
   const samp=d.filter((_,i)=>i%6===0||i===d.length-1);
   chF=new Chart(document.getElementById('cFin'),{type:'line',data:{labels:samp.map(e=>dBR(e.mes).slice(3)),datasets:[{label:'Saldo devedor',data:samp.map(e=>e.saldo||0),borderColor:'#DC2626',backgroundColor:'rgba(220,38,38,.08)',fill:true,tension:.3,pointRadius:0,borderWidth:2.5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmtBRL(c.parsed.y)}}},scales:{y:{ticks:{callback:x=>'R$ '+(x/1000).toFixed(0)+'k',font:{family:'Inter'}},grid:{color:'#EEF1F6'}},x:{grid:{display:false},ticks:{maxTicksLimit:14,font:{family:'Inter',size:10}}}}}});
@@ -614,8 +616,8 @@ function fillFin(){
   else if(lim!=='all')rows=rows.slice(0,+lim);
   document.getElementById('tbFin').innerHTML=rows.map(e=>{
     const cls=e.quitado?'pago':'vencer';const st=e.quitado?'PAGO':'A VENCER';
-    return `<tr><td><b>${e.parcela}</b></td><td>${dBR(e.mes)}</td><td class="num">${fmtBRL2(e.valor)}</td><td class="num">${fmtBRL2(e.amort)}</td><td class="num">${fmtBRL2(e.saldo)}</td><td><span class="badge ${cls}">${st}</span></td></tr>`;
-  }).join('')||'<tr><td colspan="6" style="color:var(--muted)">Nada encontrado.</td></tr>';
+    return `<tr><td><b>${e.parcela}</b></td><td>${dBR(e.mes)}</td><td class="num">${fmtBRL2(e.valor)}</td><td class="num">${e.quitado?fmtBRL2(e.pago!=null?e.pago:e.valor):'—'}</td><td class="num">${e.reajuste!=null?fmtBRL2(e.reajuste):(e.quitado?'R$ 0,00':'—')}</td><td class="num">${fmtBRL2(e.amort)}</td><td class="num">${fmtBRL2(e.saldo)}</td><td><span class="badge ${cls}">${st}</span></td></tr>`;
+  }).join('')||'<tr><td colspan="8" style="color:var(--muted)">Nada encontrado.</td></tr>';
 }
 /* ---------- SIMULADOR ---------- */
 function simulate(saldo,taxa,parcela,aporteExtra,aporteUnico){
