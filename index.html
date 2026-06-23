@@ -314,6 +314,7 @@ const MODS=[
   {id:'obra',nome:'Juros de Obra',sub:'Evolução da obra',grp:'Etapas de pagamento',roles:['admin','proprietario'],ready:true,desc:'Juros de obra e avanço da construção.'},
   {id:'financiamento',nome:'Financiamento',sub:'SAC · 420 parcelas',grp:'Etapas de pagamento',roles:['admin','proprietario'],ready:true,desc:'Saldo devedor e amortização do banco.'},
   {id:'simulador',nome:'Simulador',sub:'Amortização antecipada',grp:'Ferramentas',roles:['admin','proprietario'],ready:true,desc:'Simule aportes e veja a economia de juros.'},
+  {id:'assinatura',nome:'Assinatura',sub:'Plano e pagamento',grp:'Conta',roles:['admin','proprietario'],ready:true,desc:'Sua assinatura e pagamento.'},
   {id:'clientes',nome:'Clientes',sub:'Contratantes',grp:'Administração',roles:['admin'],adminOnly:true,ready:true,desc:'Lista e estado das contas dos clientes (somente admins).'},
   {id:'configurador',nome:'Configurador',sub:'Nova instância',grp:'Administração',roles:['admin'],adminOnly:true,ready:true,desc:'Gere a configuração de um novo comprador (somente admins).'}
 ];
@@ -360,7 +361,7 @@ function navigate(id){
   document.getElementById('crumb').childNodes[0].nodeValue=m.nome;
   document.getElementById('crumbSub').textContent=m.sub||'';
   const v=document.getElementById('view');
-  ({home:renderHome,visao:renderVisao,entrada:renderEntrada,doc:renderDoc,obra:renderObra,financiamento:renderFin,simulador:renderSim,configurador:renderConfigurador,clientes:renderClientes}[id]||renderHome)(v);
+  ({home:renderHome,visao:renderVisao,entrada:renderEntrada,doc:renderDoc,obra:renderObra,financiamento:renderFin,simulador:renderSim,configurador:renderConfigurador,clientes:renderClientes,assinatura:renderAssinatura}[id]||renderHome)(v);
   window.scrollTo(0,0);
 }
 function sig(){return `<div class="sig"><div class="by"><b>Gerenciador de Financiamento</b> <span>by</span> <img class="sym" src="vizio-symbol-dark.png"> <img class="wm" src="vizio-wordmark-dark.png"> · Sua planilha virou software.</div><span>Dados: ${DADOS._meta.fonte} · ${DADOS._meta.gerado}</span></div>`;}
@@ -419,6 +420,29 @@ function reenviarConvite(i){
   _cliFetch({action:'invite',email:c.email,appUrl:location.href.split('#')[0]}).then(function(res){
     alert(res.ok?('Convite/e-mail reenviado para '+c.email):('Erro: '+(res.error||'falha')));
   }).catch(function(e){ alert(e.message); });
+}
+function renderAssinatura(v){
+  document.body.classList.remove('home');
+  var cfg=DADOS._cfg||{};
+  var email=(window.SESSION&&SESSION.user)||(typeof SESSION!=='undefined'&&SESSION?SESSION.user:'')||'';
+  v.innerHTML='<div class="card"><h2>Assinatura</h2><div class="cap">Plano e status de pagamento da sua conta.</div><div id="assBox" style="font-size:.92rem;color:#667085">Carregando...</div></div>'+sig();
+  function render(row){
+    var st=(row&&row.status)||'none', badge,msg;
+    if(st==='active'||st==='trialing'){badge='<span class="badge pago">Assinatura ativa</span>';msg='Sua assinatura está ativa. Obrigado por usar o Gerenciador!';}
+    else if(st==='past_due'){badge='<span class="badge vencer">Pagamento pendente</span>';msg='Há um pagamento pendente. Regularize para manter o acesso.';}
+    else if(st==='canceled'){badge='<span class="badge vencer">Cancelada</span>';msg='Sua assinatura foi cancelada. Você pode assinar novamente quando quiser.';}
+    else {badge='<span class="badge vencer">Sem assinatura</span>';msg='Você ainda não tem uma assinatura ativa.';}
+    var link=cfg.assinaturaUrl?(cfg.assinaturaUrl+(cfg.assinaturaUrl.indexOf('?')>=0?'&':'?')+'prefilled_email='+encodeURIComponent(email)):'';
+    var btn=(st==='active'||st==='trialing')?'':(link?'<a href="'+link+'" target="_blank" style="display:inline-block;text-decoration:none;margin-top:12px;background:#1C64F0;color:#fff;font-weight:700;padding:11px 18px;border-radius:9px">Assinar agora — R$ 29,90/mês</a>':'<div style="color:#98A2B3;margin-top:10px;font-size:.84rem">Link de assinatura ainda não configurado.</div>');
+    var box=document.getElementById('assBox'); if(!box)return;
+    box.innerHTML='<div style="margin-bottom:10px">'+badge+'</div>'+
+      '<div style="background:#F7F9FC;border:1px solid #E4E8EF;border-radius:12px;padding:18px 20px;max-width:420px">'+
+      '<div style="font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:#667085;font-weight:700">Plano mensal</div>'+
+      '<div style="font-size:1.7rem;font-weight:800;color:#1C64F0;margin:2px 0">R$ 29,90<span style="font-size:.9rem;color:#667085;font-weight:600"> /mês</span></div>'+
+      '<p style="font-size:.86rem;color:#475467;margin:8px 0 0">'+msg+'</p>'+btn+'</div>';
+  }
+  if(window.SUPA){ window.SUPA.from('fin_assinaturas').select('*').maybeSingle().then(function(r){render(r&&r.data);}).catch(function(){render(null);}); }
+  else { render(null); }
 }
 function renderConfigurador(v){
   document.body.classList.remove('home');
