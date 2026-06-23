@@ -189,9 +189,10 @@ function toast(msg,kind){var t=document.createElement("div");t.className="toast 
 /* ---------- barra de ações ---------- */
 function barHTML(id,mode){
   var rep='<button class="ab ghost" onclick="CRUD.report(\''+id+'\')">Relatório PDF</button>';
+  var csvb=SCHEMAS[id]?'<button class="ab" onclick="CRUD.exportCSV(\''+id+'\')">Exportar CSV</button>':'';
   if(NO_CRUD[id])return '<div class="abar"><button class="ab on" onclick="window.navigate(\''+id+'\')">Painel</button>'+rep+'</div>';
   return '<div class="abar"><button class="ab '+(mode==="dash"?"on":"")+'" onclick="window.navigate(\''+id+'\')">Painel</button>'+
-    '<button class="ab '+(mode==="manage"?"on":"")+'" onclick="CRUD.manage(\''+id+'\')">Gerenciar dados</button>'+rep+'</div>';
+    '<button class="ab '+(mode==="manage"?"on":"")+'" onclick="CRUD.manage(\''+id+'\')">Gerenciar dados</button>'+csvb+rep+'</div>';
 }
 var _nav=window.navigate;
 window.navigate=function(id){ _nav(id); if(id&&id!=="home"){var v=document.getElementById("view");if(v)v.insertAdjacentHTML("afterbegin",barHTML(id,"dash"));} };
@@ -326,6 +327,34 @@ function save(id,idx){
 function del(id,idx){ if(!confirm("Excluir esta parcela?"))return; var e=rows(id)[idx]; rows(id).splice(idx,1); recompute(); persist(id,"delete",e,idx); manage(id); }
 
 /* ---------- relatório (com resumo) ---------- */
+function csvCell(id,f,e){
+  if(f.t==="status")return isPago(e)?"PAGO":"A VENCER";
+  if(f.t==="check")return isPago(e)?"Sim":"Não";
+  if(isMoney(f))return (e[f.k]==null||e[f.k]==="")?"":moneyFmt(e[f.k]);
+  if(f.t==="date")return dBR(e[f.k]);
+  return e[f.k]==null?"":String(e[f.k]);
+}
+function exportCSV(id){
+  var sc=SCHEMAS[id]; if(!sc){toast("Exportação disponível nas etapas.","warn");return;}
+  recompute();
+  var cols=sc.fields;
+  var lines=[cols.map(function(f){return f.l;})];
+  rows(id).forEach(function(e){ lines.push(cols.map(function(f){return csvCell(id,f,e);})); });
+  var rs=resumoEtapa(id);
+  lines.push([]);
+  lines.push(["Total previsto", moneyFmt(rs.prev||0)]);
+  lines.push(["Total pago", moneyFmt(rs.pago||0)]);
+  lines.push(["Falta", moneyFmt((rs.prev||0)-(rs.pago||0))]);
+  lines.push(["Concluído", (rs.pct*100).toFixed(1).replace(".",",")+"%"]);
+  var sep=";";
+  var csv=lines.map(function(row){ return row.map(function(c){ return chr34+String(c==null?"":c).replace(/"/g,chr34+chr34)+chr34; }).join(sep); }).join(CRLF);
+  csv=BOM+csv;
+  var blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=(sc.rep||id)+".csv"; a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+  toast("CSV exportado — abre no Excel.","ok");
+}
+var BOM=String.fromCharCode(65279), CRLF=String.fromCharCode(13,10), chr34=String.fromCharCode(34);
 function cellReport(id,f,e){ if(f.t==="status")return isPago(e)?"PAGO":"A VENCER"; if(f.t==="check")return isPago(e)?"Pago":"A vencer"; if(isMoney(f))return BRL(e[f.k]); if(f.t==="date")return dBR(e[f.k]); return e[f.k]==null||e[f.k]===""?"—":e[f.k]; }
 function report(id){
   recompute();
@@ -362,6 +391,6 @@ try{ recompute(); }catch(e){}
 function liveCorrecao(){ var pp=document.getElementById("fld_pago"),vv=document.getElementById("fld_valor"),rr=document.getElementById("fld_reajuste"); if(!pp||!vv||!rr)return; var pv=moneyParse(pp.value),vl=moneyParse(vv.value); rr.value=(pv==null||vl==null)?"\u2014":("R$ "+moneyFmt(r2(pv-vl))); }
 window.CRUD={manage:manage,filter:filter,setPend:setPend,togglePago:togglePago,fmtMoney:fmtMoney,liveCorrecao:liveCorrecao,
   add:function(id){openForm(id,null);},edit:function(id,i){openForm(id,i);},save:save,del:del,close:closeForm,
-  report:report,gerar:gerar,saveCfg:saveCfg,cfgForma:cfgForma,recompute:recompute,_setApi:function(u){API_URL=u;}};
+  report:report,exportCSV:exportCSV,gerar:gerar,saveCfg:saveCfg,cfgForma:cfgForma,recompute:recompute,_setApi:function(u){API_URL=u;}};
 
 })();
