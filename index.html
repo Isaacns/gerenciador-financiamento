@@ -324,9 +324,9 @@ const dBR=s=>{if(!s||s==='—')return '—';const p=String(s).split('-');return 
 function can(m){return m.adminOnly ? !!(SESSION&&SESSION.isAdmin) : m.roles.includes(SESSION.perfil);}
 
 /* ---- agregações derivadas dos arrays ---- */
-function aggEntrada(){const d=DADOS.entrada;let pago=0,vencer=0,prev=0,nPagos=0,nVencer=0;
-  d.forEach(e=>{const v=e.valor||0;prev+=v;if(e.quitado){pago+=(e.pago||e.total||v);nPagos++;}else{vencer+=v;nVencer++;}});
-  return {pago,vencer,prev,nPagos,nVencer,n:d.length,pct:pago/(pago+vencer||1)};}
+function aggEntrada(){const d=DADOS.entrada;let pago=0,vencer=0,prev=0,nPagos=0,nVencer=0,reaj=0;
+  d.forEach(e=>{const v=e.valor||0;prev+=v;if(e.quitado){pago+=(e.pago||e.total||v);nPagos++;reaj+=(Number(e.reajuste)||0);}else{vencer+=v;nVencer++;}});
+  return {pago,vencer,prev,nPagos,nVencer,reaj,n:d.length,pct:pago/(pago+vencer||1)};}
 function aggDoc(){const d=DADOS.doc;let pago=0,vencer=0,nPagos=0,nVencer=0;
   d.forEach(e=>{const v=e.total||0;if(e.quitado){pago+=v;nPagos++;}else{vencer+=v;nVencer++;}});
   return {pago,vencer,nPagos,nVencer,n:d.length,pct:pago/(pago+vencer||1)};}
@@ -469,13 +469,14 @@ function renderEntrada(v){
     <div class="kpis">
       <div class="kpi green"><div class="lbl">Total pago</div><div class="val">${fmtBRL(a.pago)}</div><div class="hint">${a.nPagos} parcelas quitadas</div></div>
       <div class="kpi warnb"><div class="lbl">A vencer</div><div class="val">${fmtBRL(a.vencer)}</div><div class="hint">${a.nVencer} parcelas restantes</div></div>
+      <div class="kpi"><div class="lbl">Reajuste acumulado</div><div class="val">${fmtBRL(a.reaj)}</div><div class="hint">correção paga (pago − previsto)</div></div>
       <div class="kpi ink"><div class="lbl">Total previsto</div><div class="val">${fmtBRL(a.pago+a.vencer)}</div><div class="hint">entrada completa</div></div>
       <div class="kpi"><div class="lbl">Concluído</div><div class="val">${fmtPct(a.pct)}</div><div class="pbar"><i style="width:${(a.pct*100).toFixed(1)}%"></i></div></div>
     </div>
-    <div class="card"><h2>Parcelas da entrada</h2><div class="cap">Valor previsto (barra) e valor efetivamente pago com reajuste (linha).</div><div class="chartbox tall"><canvas id="cEnt"></canvas></div></div>
+    <div class="card"><h2>Parcelas da entrada</h2><div class="cap">Valor previsto (barra) e valor efetivamente pago/corrigido (linha). O reajuste é a diferença pago − previsto, calculada automaticamente.</div><div class="chartbox tall"><canvas id="cEnt"></canvas></div></div>
     <div class="card"><h2>Detalhe das parcelas</h2>
       <div class="toolbar"><button class="chip on" data-f="todas" onclick="filtEnt(this)">Todas</button><button class="chip" data-f="pago" onclick="filtEnt(this)">Pagas</button><button class="chip" data-f="vencer" onclick="filtEnt(this)">A vencer</button><input id="bEnt" placeholder="Buscar parcela..." oninput="fillEnt()" style="flex:1;min-width:150px"></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Parcela</th><th>Vencimento</th><th class="num">Valor</th><th class="num">Pago</th><th class="num">Reajuste</th><th>Status</th></tr></thead><tbody id="tbEnt"></tbody></table></div></div>${sig()}`;
+      <div class="tbl-wrap"><table><thead><tr><th>Parcela</th><th>Vencimento</th><th class="num">Valor</th><th class="num">Pago (corrigido)</th><th class="num">Reajuste</th><th>Status</th></tr></thead><tbody id="tbEnt"></tbody></table></div></div>${sig()}`;
   if(chE)chE.destroy();
   const lab=d.map(e=>e.parcela);
   chE=new Chart(document.getElementById('cEnt'),{data:{labels:lab,datasets:[
@@ -493,7 +494,7 @@ function fillEnt(){
     return String(e.parcela).toLowerCase().includes(q);});
   document.getElementById('tbEnt').innerHTML=rows.map(e=>{
     const cls=e.quitado?'pago':'vencer';const st=e.quitado?'PAGO':'A VENCER';
-    return `<tr><td><b>${e.parcela}</b></td><td>${dBR(e.venc)}</td><td class="num">${fmtBRL2(e.valor)}</td><td class="num">${e.quitado?fmtBRL2(e.pago||e.total):'—'}</td><td class="num">${e.reajuste?fmtBRL2(e.reajuste):'—'}</td><td><span class="badge ${cls}">${st}</span></td></tr>`;
+    return `<tr><td><b>${e.parcela}</b></td><td>${dBR(e.venc)}</td><td class="num">${fmtBRL2(e.valor)}</td><td class="num">${e.quitado?fmtBRL2(e.pago||e.total):'—'}</td><td class="num">${e.reajuste!=null?fmtBRL2(e.reajuste):(e.quitado?'R$ 0,00':'—')}</td><td><span class="badge ${cls}">${st}</span></td></tr>`;
   }).join('')||'<tr><td colspan="6" style="color:var(--muted)">Nenhuma parcela.</td></tr>';
 }
 /* ---------- DOCUMENTAÇÃO ---------- */

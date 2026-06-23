@@ -14,6 +14,7 @@ var API_URL = "https://script.google.com/macros/s/AKfycbxrOR7LZBG-r5RYLDKNYnUS8a
 
 /* ---------- helpers ---------- */
 function r2(n){ return Math.round((Number(n)||0)*100)/100; }
+function correcaoEntrada(e){ if(!e||e.pago==null||e.pago===""||e.valor==null)return null; return r2(Number(e.pago)-Number(e.valor)); }
 function moneyFmt(n){ return (Number(n)||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function BRL(v){ return (v==null||v==="")?"—":"R$ "+moneyFmt(v); }
 function moneyParse(s){ if(s==null||s==="")return null; s=String(s).replace(/[^\d.,-]/g,""); if(s.indexOf(",")>=0)s=s.replace(/\./g,"").replace(",","."); var n=parseFloat(s); return isNaN(n)?null:n; }
@@ -32,7 +33,7 @@ var SCHEMAS={
   entrada:{label:"Parcela da entrada",rep:"Entrada Parcelada",hasCfg:true,kind:"etapa",pagoFill:"pago",fields:[
     {k:"parcela",l:"Parcela",t:"text"},{k:"venc",l:"Vencimento",t:"date"},
     {k:"valor",l:"Valor",t:"money"},{k:"pago",l:"Valor pago",t:"money"},
-    {k:"reajuste",l:"Juros/Reajuste",t:"money"},{k:"quitado",l:"Pago?",t:"check"},{k:"status",l:"Status",t:"status"}
+    {k:"reajuste",l:"Reajuste (corrigido)",t:"money",auto:true},{k:"quitado",l:"Pago?",t:"check"},{k:"status",l:"Status",t:"status"}
   ]},
   doc:{label:"Parcela de documentação",rep:"Documentação (RTBI + Cartório)",hasCfg:true,kind:"etapa",fields:[
     {k:"parcela",l:"Parcela",t:"number"},{k:"rtbi",l:"RTBI",t:"money"},{k:"cartorio",l:"Cartório",t:"money"},
@@ -118,7 +119,7 @@ function gerar(id){
   } else if(id==="entrada"){
     var Te=c.total||0, ne=c.forma==="avista"?1:(parseInt(c.nParc)||0), ie=(c.taxa||0)/100, fixa=(c.tipo!=="juros"); if(Te<=0||ne<=0){toast("Preencha valor total e nº de parcelas.","warn");return;}
     var pe=(!fixa&&ie>0)?Te*ie/(1-Math.pow(1+ie,-ne)):Te/ne;
-    for(var m=1;m<=ne;m++){ var jr=(!fixa&&ie>0)?r2(pe-Te/ne):0; out.push({parcela:String(m),venc:addMonths(c.data||"2024-01",m-1),valor:r2(pe),pago:null,reajuste:jr,quitado:false,status:"A VENCER"}); }
+    for(var m=1;m<=ne;m++){ var jr=(!fixa&&ie>0)?r2(pe-Te/ne):0; out.push({parcela:String(m),venc:addMonths(c.data||"2024-01",m-1),valor:r2(pe),pago:null,reajuste:null,quitado:false,status:"A VENCER"}); }
     DADOS.entrada=out;
   }
   recompute();
@@ -284,6 +285,7 @@ function togglePago(id,i,checked){
   var sc=SCHEMAS[id],e=rows(id)[i]; e.quitado=!!checked; e.status=checked?"PAGO":"A VENCER";
   if(checked&&sc.pagoFill&&(e[sc.pagoFill]==null||e[sc.pagoFill]==="")) e[sc.pagoFill]=e.valor;
   if(!checked&&sc.pagoFill) e[sc.pagoFill]=null;
+  if(id==="entrada")e.reajuste=correcaoEntrada(e);
   recompute(); persist(id,"update",e,i); manage(id);
 }
 
@@ -291,8 +293,9 @@ function togglePago(id,i,checked){
 function fieldInput(f,cur){
   if(f.t==="status")return "";
   if(f.t==="check"){var on=(cur===true);return '<div class="fld"><label>'+f.l+'</label><label class="ckfld"><input type="checkbox" id="fld_'+f.k+'" '+(on?"checked":"")+'><span>Parcela paga / quitada</span></label></div>';}
+  if(f.auto){var d2=(cur==null||cur==="")?"\u2014":("R$ "+moneyFmt(cur));return '<div class="fld"><label>'+f.l+'</label><input id="fld_'+f.k+'" type="text" value="'+esc(d2)+'" disabled style="background:#F3F5F9;color:#667085">'+'<div style="font-size:.72rem;color:#98A2B3;margin-top:3px">Calculado automaticamente: valor pago \u2212 previsto.</div></div>';}
   var lbl='<label>'+f.l+(isMoney(f)?" (R$)":"")+'</label>';
-  if(f.t==="money"){var disp=(cur==null||cur==="")?"":moneyFmt(cur);return '<div class="fld">'+lbl+'<div class="moneyfld"><span class="pre">R$</span><input id="fld_'+f.k+'" type="text" inputmode="decimal" value="'+esc(disp)+'" onblur="CRUD.fmtMoney(this)"></div></div>';}
+  if(f.t==="money"){var disp=(cur==null||cur==="")?"":moneyFmt(cur);return '<div class="fld">'+lbl+'<div class="moneyfld"><span class="pre">R$</span><input id="fld_'+f.k+'" type="text" inputmode="decimal" value="'+esc(disp)+'" oninput="window.CRUD&&CRUD.liveCorrecao&&CRUD.liveCorrecao()" onblur="CRUD.fmtMoney(this)"></div></div>';}
   if(f.t==="date")return '<div class="fld">'+lbl+'<input id="fld_'+f.k+'" type="date" value="'+esc(cur||"")+'"></div>';
   if(f.t==="number")return '<div class="fld">'+lbl+'<input id="fld_'+f.k+'" type="number" step="1" value="'+esc(cur)+'"></div>';
   return '<div class="fld">'+lbl+'<input id="fld_'+f.k+'" type="text" value="'+esc(cur)+'"></div>';
@@ -314,6 +317,7 @@ function save(id,idx){
     if(f.t==="check")rec.quitado=el.checked; else if(isMoney(f))rec[f.k]=moneyParse(el.value); else if(f.t==="number")rec[f.k]=el.value===""?null:Number(el.value); else rec[f.k]=el.value; });
   rec.status=rec.quitado?"PAGO":"A VENCER";
   if(rec.quitado&&sc.pagoFill&&rec[sc.pagoFill]==null)rec[sc.pagoFill]=rec.valor;
+  if(id==="entrada")rec.reajuste=correcaoEntrada(rec);
   if(idx==null)rows(id).push(rec);else rows(id)[idx]=rec;
   recompute(); persist(id,idx==null?"create":"update",rec,idx==null?rows(id).length-1:idx);
   closeForm(); manage(id);
@@ -354,7 +358,8 @@ function report(id){
 try{ recompute(); }catch(e){}
 
 /* ---------- API pública ---------- */
-window.CRUD={manage:manage,filter:filter,setPend:setPend,togglePago:togglePago,fmtMoney:fmtMoney,
+function liveCorrecao(){ var pp=document.getElementById("fld_pago"),vv=document.getElementById("fld_valor"),rr=document.getElementById("fld_reajuste"); if(!pp||!vv||!rr)return; var pv=moneyParse(pp.value),vl=moneyParse(vv.value); rr.value=(pv==null||vl==null)?"\u2014":("R$ "+moneyFmt(r2(pv-vl))); }
+window.CRUD={manage:manage,filter:filter,setPend:setPend,togglePago:togglePago,fmtMoney:fmtMoney,liveCorrecao:liveCorrecao,
   add:function(id){openForm(id,null);},edit:function(id,i){openForm(id,i);},save:save,del:del,close:closeForm,
   report:report,gerar:gerar,saveCfg:saveCfg,cfgForma:cfgForma,recompute:recompute,_setApi:function(u){API_URL=u;}};
 
