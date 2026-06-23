@@ -8,7 +8,7 @@
  * =========================================================================== */
 (function(){
 "use strict";
-var CFG = (window.DADOS && DADOS._cfg) ? DADOS._cfg : {};
+var CFG = (typeof DADOS!=="undefined" && DADOS._cfg) ? DADOS._cfg : {};
 if(!CFG.supabaseUrl || !window.supabase){ return; }   // modo demo/Apps Script: não faz nada
 
 var SB = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
