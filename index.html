@@ -180,13 +180,13 @@ body.home .topbar .user button.out{border-color:#283149;color:#8A93A8}
 <div id="login">
   <form class="login-card" onsubmit="return doLogin(event)">
     <div class="lg"><img class="sym" src="vizio-symbol-dark.png" alt="VIZIO"><img class="wm" src="vizio-wordmark-dark.png" alt="VIZIO"></div>
-    <h1>Gerenciador de Financiamento</h1>
-    <div class="sb">Meu Apê 203 — Dom Pedro I · acesso restrito</div>
+    <h1 id="lgTitle">Gerenciador de Financiamento</h1>
+    <div class="sb" id="lgSub">Meu Apê 203 — Dom Pedro I · acesso restrito</div>
     <div class="login-err" id="loginErr"></div>
     <div class="field"><label>Usuário</label><input id="u" autocomplete="username" autofocus></div>
     <div class="field"><label>Senha</label><input id="p" type="password" autocomplete="current-password"></div>
     <button class="btn-primary" type="submit">Entrar</button>
-    <div class="login-hint">Acesso de demonstração:<br><b>sarah</b> / <b>sarah</b> — proprietária<br><b>admin</b> / <b>admin</b> — gestor (Isaac)</div>
+    <div class="login-hint" id="lgHint">Acesso de demonstração:<br><b>sarah</b> / <b>sarah</b> — proprietária<br><b>admin</b> / <b>admin</b> — gestor (Isaac)</div>
     <div class="login-tag">Sua planilha virou software. · um produto INPERSON</div>
   </form>
 </div>
@@ -194,9 +194,9 @@ body.home .topbar .user button.out{border-color:#283149;color:#8A93A8}
 <div id="app" class="hidden">
   <aside class="side">
     <div class="logo"><img class="sym" src="vizio-symbol-light.png" alt="VIZIO"><img class="wm" src="vizio-wordmark-light.png" alt="VIZIO"></div>
-    <div class="prop">🏠 Meu Apê 203 — Dom Pedro I</div>
+    <div class="prop" id="sideProp">🏠 Meu Apê 203 — Dom Pedro I</div>
     <nav class="nav" id="nav"></nav>
-    <div class="foot"><span>Gerenciador de Financiamento · v1.0</span></div>
+    <div class="foot"><span id="sideFoot">Gerenciador de Financiamento · v1.0</span></div>
   </aside>
   <div class="main">
     <header class="topbar">
@@ -212,21 +212,84 @@ body.home .topbar .user button.out{border-color:#283149;color:#8A93A8}
 </div>
 
 <script>
-const USERS=[
+/* ===== Configuração da INSTÂNCIA (lida do dados.js; fallback p/ a 1ª instância) =====
+   Para criar a instância de um novo comprador, basta gerar um dados.js com
+   DADOS._cfg e DADOS._users (ver o Configurador). Nada mais precisa ser editado. */
+const CFG = (typeof DADOS!=='undefined' && DADOS._cfg) ? DADOS._cfg : {};
+const PRODUTO   = CFG.produto   || 'Gerenciador de Financiamento';
+const INSTANCIA = CFG.instancia || 'Meu Apê 203 — Dom Pedro I';
+const PROP_LABEL= CFG.propLabel || 'Proprietária';
+const AUTH_URL  = CFG.authUrl   || '';
+const USERS = (typeof DADOS!=='undefined' && Array.isArray(DADOS._users) && DADOS._users.length) ? DADOS._users : [
   {user:'sarah',pass:'sarah',nome:'Sarah Nogueira',perfil:'proprietario'},
   {user:'admin',pass:'admin',nome:'Isaac Nogueira',perfil:'admin'}
 ];
+function applyCfg(){
+  try{
+    document.title = PRODUTO + ' · VIZIO';
+    var t=document.getElementById('lgTitle'); if(t) t.textContent=PRODUTO;
+    var s=document.getElementById('lgSub');   if(s) s.textContent=INSTANCIA+' · acesso restrito';
+    var p=document.getElementById('sideProp');if(p) p.textContent='🏠 '+INSTANCIA;
+    var f=document.getElementById('sideFoot');if(f) f.textContent=PRODUTO+' · v1.0';
+    var h=document.getElementById('lgHint');
+    if(h){
+      if(AUTH_URL){ h.innerHTML='Acesso restrito · entre com seu usuário e senha.'; }
+      else { h.innerHTML='Acesso de demonstração:<br>'+USERS.map(function(u){return '<b>'+u.user+'</b> / <b>'+(u.pass||'•••')+'</b> — '+(u.perfil==='admin'?'gestor':(u.roleLabel||PROP_LABEL.toLowerCase()));}).join('<br>'); }
+    }
+  }catch(e){}
+}
+applyCfg();
 let SESSION=null;
 try{const s=sessionStorage.getItem('vizio_fin_sess');if(s)SESSION=JSON.parse(s);}catch(e){}
+/* ===== Autenticação =====
+   AUTH_URL (em DADOS._cfg.authUrl) = URL /exec do Apps Script com auth.
+   Se preenchida: o login é validado NO SERVIDOR (senhas ficam hasheadas no
+   Sheets, fora do JS público) via SHA-256 + JSONP. Se vazia: modo demonstração
+   usando DADOS._users (front-end). AUTH_URL já está definido no bloco de config acima. */
+async function sha256hex(s){
+  try{ const b=new TextEncoder().encode(s);
+    const d=await crypto.subtle.digest('SHA-256',b);
+    return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,'0')).join(''); }
+  catch(e){ return null; }
+}
+function jsonp(url,cb){
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    const t=setTimeout(()=>{cleanup();rej(new Error('timeout'));},12000);
+    function cleanup(){clearTimeout(t);try{delete window[cb];}catch(e){}s.remove();}
+    window[cb]=d=>{cleanup();res(d);};
+    s.onerror=()=>{cleanup();rej(new Error('net'));};
+    s.src=url+(url.indexOf('?')>=0?'&':'?')+'callback='+cb;
+    document.body.appendChild(s);
+  });
+}
+function setSession(s){
+  SESSION=s;
+  try{sessionStorage.setItem('vizio_fin_sess',JSON.stringify(SESSION));}catch(e){}
+  startApp();
+}
 function doLogin(e){
   e.preventDefault();
   const u=document.getElementById('u').value.trim().toLowerCase();
   const p=document.getElementById('p').value;
-  const f=USERS.find(x=>x.user===u&&x.pass===p);
-  if(!f){document.getElementById('loginErr').textContent='Usuário ou senha inválidos.';return false;}
-  SESSION={nome:f.nome,perfil:f.perfil,user:f.user};
-  try{sessionStorage.setItem('vizio_fin_sess',JSON.stringify(SESSION));}catch(e){}
-  startApp();return false;
+  const err=document.getElementById('loginErr');
+  if(!AUTH_URL){ // modo demonstração (front-end)
+    const f=USERS.find(x=>x.user===u&&x.pass===p);
+    if(!f){err.textContent='Usuário ou senha inválidos.';return false;}
+    setSession({nome:f.nome,perfil:f.perfil,user:f.user,roleLabel:f.roleLabel});
+    return false;
+  }
+  err.textContent='Verificando…';
+  (async()=>{
+    try{
+      const h=await sha256hex(p);
+      if(!h){err.textContent='Navegador sem suporte a criptografia (use HTTPS).';return;}
+      const r=await jsonp(AUTH_URL+'?action=login&u='+encodeURIComponent(u)+'&h='+h,'__vzAuth'+Date.now());
+      if(r&&r.ok){setSession({nome:r.nome,perfil:r.perfil,user:u,roleLabel:r.roleLabel});}
+      else{err.textContent='Usuário ou senha inválidos.';}
+    }catch(ex){err.textContent='Falha ao conectar ao servidor de login.';}
+  })();
+  return false;
 }
 function logout(){SESSION=null;try{sessionStorage.removeItem('vizio_fin_sess');}catch(e){}location.reload();}
 
@@ -250,7 +313,7 @@ const MODS=[
   {id:'financiamento',nome:'Financiamento',sub:'SAC · 420 parcelas',grp:'Etapas de pagamento',roles:['admin','proprietario'],ready:true,desc:'Saldo devedor e amortização do banco.'},
   {id:'simulador',nome:'Simulador',sub:'Amortização antecipada',grp:'Ferramentas',roles:['admin','proprietario'],ready:true,desc:'Simule aportes e veja a economia de juros.'}
 ];
-const fmtBRL=n=>'R$ '+(Math.round(n||0)).toLocaleString('pt-BR');
+const fmtBRL=n=>'R$ '+(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtBRL2=n=>'R$ '+(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtN=n=>Math.round(n||0).toLocaleString('pt-BR');
 const fmtPct=n=>(n*100).toFixed(1).replace('.',',')+'%';
@@ -273,7 +336,7 @@ function startApp(){
   document.getElementById('login').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('uName').textContent=SESSION.nome;
-  document.getElementById('uRole').textContent=SESSION.perfil==='admin'?'Gestor (INPERSON)':'Proprietária';
+  document.getElementById('uRole').textContent=SESSION.perfil==='admin'?'Gestor (INPERSON)':(SESSION.roleLabel||PROP_LABEL);
   document.getElementById('uAv').textContent=SESSION.nome.split(' ').map(x=>x[0]).slice(0,2).join('');
   buildNav();navigate('home');
 }
@@ -317,7 +380,7 @@ function kvOf(id){const r=DADOS.resumo;
 }
 function renderHome(v){
   const r=DADOS.resumo,fm=DADOS.finMeta;
-  const pctGeral=r.totalInvestido/r.custoTotal;
+  const pctGeral=r.custoTotal?r.totalInvestido/r.custoTotal:0;
   const SP={
     visao:[DADOS.desembolso.map(x=>x.acum),'line'],
     entrada:[DADOS.entrada.map(e=>e.valor||0),'bar'],
@@ -336,7 +399,7 @@ function renderHome(v){
     <div class="home-hero">
       <div class="home-logo"><img class="sym" src="vizio-symbol-light.png"><img class="wm" src="vizio-wordmark-light.png"></div>
       <div class="home-title">GERENCIADOR DE <span>FINANCIAMENTO</span></div>
-      <div class="home-sub">Meu Apê 203 — Dom Pedro I · Sua planilha virou software.</div>
+      <div class="home-sub">${INSTANCIA} · Sua planilha virou software.</div>
       <div class="home-kpis">
         <div class="hk"><div class="hk-n">${fmtBRL(r.totalInvestido)}</div><div class="hk-l">Já investido</div></div>
         <div class="hk"><div class="hk-n">${fmtBRL(r.custoTotal)}</div><div class="hk-l">Custo total</div></div>
@@ -354,7 +417,7 @@ let chD,chE,chDoc,chO,chF,chS;
 /* ---------- VISÃO GERAL ---------- */
 function renderVisao(v){
   const r=DADOS.resumo,e=aggEntrada(),dc=aggDoc(),ob=aggObra(),fm=DADOS.finMeta;
-  const pctGeral=r.totalInvestido/r.custoTotal;
+  const pctGeral=r.custoTotal?r.totalInvestido/r.custoTotal:0;
   const cats=[
     {nm:'Entrada',pago:e.pago,prev:e.pago+e.vencer,cor:'#1C64F0'},
     {nm:'Documentação',pago:dc.pago,prev:dc.pago+dc.vencer,cor:'#3C94FC'},
