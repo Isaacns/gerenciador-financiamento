@@ -93,9 +93,10 @@ window.logout=function(){ SB.auth.signOut().finally(function(){ try{sessionStora
 
 /* ----- recuperação de senha (link do e-mail volta com type=recovery) ----- */
 SB.auth.onAuthStateChange(function(evt){
-  if(evt==="PASSWORD_RECOVERY"){
-    var np=prompt("Defina sua nova senha (mín. 6 caracteres):");
-    if(np&&np.length>=6) SB.auth.updateUser({password:np}).then(function(r){ alert(r.error?("Erro: "+r.error.message):"Senha alterada! Entre com a nova senha."); });
+  var conv=/type=(invite|recovery|signup)/.test(location.hash||"");
+  if(evt==="PASSWORD_RECOVERY" || (evt==="SIGNED_IN" && conv)){
+    var np=prompt("Bem-vindo! Defina sua senha de acesso (mín. 6 caracteres):");
+    if(np&&np.length>=6) SB.auth.updateUser({password:np}).then(function(r){ alert(r.error?("Erro: "+r.error.message):"Senha definida! Você já está no sistema."); });
   }
 });
 

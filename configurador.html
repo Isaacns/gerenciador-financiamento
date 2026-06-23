@@ -357,14 +357,14 @@ async function enviarCliente(){
   var configs={financiamento:{total:num('f_valor'),tipo:val('f_sist'),meses:int('f_nparc'),taxa:num('f_juros'),data:val('f_data')}};
   if(chk('t_ent'))configs.entrada={total:num('e_total'),forma:'parcelado',nParc:int('e_n'),tipo:'fixa',taxa:0,data:val('e_data')};
   if(chk('t_doc'))configs.doc={total:num('d_total'),forma:'parcelado',nParc:int('d_n'),tipo:'fixa',taxa:0,data:''};
-  var payload={clientEmail:email,instancia:D._meta.imovel,nome:(D._users&&D._users[0]?D._users[0].nome:''),propLabel:D._cfg.propLabel,
+  var payload={clientEmail:email,appUrl:(window.parent&&window.parent.location?window.parent.location.href.split('#')[0]:''),instancia:D._meta.imovel,nome:(D._users&&D._users[0]?D._users[0].nome:''),propLabel:D._cfg.propLabel,
     modules:{entrada:D.entrada,doc:D.doc,obra:D.juros,fin:D.fin},configs:configs};
   try{
     var resp=await fetch(CFG.supabaseUrl.replace(/\/+$/,'')+'/functions/v1/seed-client',{
       method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':CFG.supabaseKey||''},
       body:JSON.stringify(payload)});
     var r=await resp.json();
-    if(r&&r.ok){var c=r.counts||{};st.innerHTML='<b style="color:#16A34A">Enviado!</b> Entrada '+(c.entrada||0)+' . Doc '+(c.doc||0)+' . Obra '+(c.obra||0)+' . Financiamento '+(c.fin||0)+'. O cliente ja ve tudo preenchido ao entrar.';}
+    if(r&&r.ok){var c=r.counts||{};var extra=r.created?' <b>Conta criada e convite enviado por e-mail.</b>':' O cliente ja ve tudo preenchido ao entrar.';st.innerHTML='<b style="color:#16A34A">Enviado!</b> Entrada '+(c.entrada||0)+' . Doc '+(c.doc||0)+' . Obra '+(c.obra||0)+' . Financiamento '+(c.fin||0)+'.'+extra;}
     else st.innerHTML='<b style="color:#DC2626">Erro:</b> '+((r&&r.error)||('HTTP '+resp.status));
   }catch(e){st.innerHTML='<b style="color:#DC2626">Erro de rede:</b> '+e.message;}
 }
