@@ -735,5 +735,29 @@ if(SESSION)startApp();
 </script>
 <script src="app-crud.js"></script>
 <script src="supabase-mode.js"></script>
+<!-- INPERSON/VIZIO · mostrar-ocultar senha (cobre campos dinamicos) -->
+<style>
+.pw-wrap{position:relative;display:block}
+.pw-wrap > input{padding-right:42px !important}
+.pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;cursor:pointer;font-size:16px;line-height:1;opacity:.65;padding:4px}
+.pw-eye:hover{opacity:1}
+</style>
+<script>
+(function(){
+  function enhance(inp){
+    if(!inp||inp.dataset.pwEnhanced||inp.type!=='password'||!inp.parentNode) return;
+    inp.dataset.pwEnhanced='1';
+    var w=document.createElement('span');w.className='pw-wrap';
+    inp.parentNode.insertBefore(w,inp);w.appendChild(inp);
+    var b=document.createElement('button');b.type='button';b.className='pw-eye';
+    b.setAttribute('aria-label','Mostrar senha');b.textContent='👁';
+    b.addEventListener('click',function(){var h=inp.type==='password';inp.type=h?'text':'password';b.textContent=h?'🙈':'👁';b.setAttribute('aria-label',h?'Ocultar senha':'Mostrar senha');inp.focus();});
+    w.appendChild(b);
+  }
+  function scan(r){(r||document).querySelectorAll&&(r||document).querySelectorAll('input[type=password]').forEach(enhance);}
+  if(document.readyState!=='loading')scan();else document.addEventListener('DOMContentLoaded',function(){scan();});
+  new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes&&m.addedNodes.forEach(function(n){if(n.nodeType===1){if(n.matches&&n.matches('input[type=password]'))enhance(n);scan(n);}});});}).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
 </body>
 </html>
