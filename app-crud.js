@@ -190,9 +190,10 @@ function toast(msg,kind){var t=document.createElement("div");t.className="toast 
 function barHTML(id,mode){
   var rep='<button class="ab ghost" onclick="CRUD.report(\''+id+'\')">Relatório PDF</button>';
   var csvb=SCHEMAS[id]?'<button class="ab" onclick="CRUD.exportCSV(\''+id+'\')">Exportar CSV</button>':'';
+  var impb=SCHEMAS[id]?'<button class="ab" onclick="CRUD.importCSV(\''+id+'\')" title="Importar parcelas de uma planilha CSV">Importar CSV</button>':'';
   if(NO_CRUD[id])return '<div class="abar"><button class="ab on" onclick="window.navigate(\''+id+'\')">Painel</button>'+rep+'</div>';
   return '<div class="abar"><button class="ab '+(mode==="dash"?"on":"")+'" onclick="window.navigate(\''+id+'\')">Painel</button>'+
-    '<button class="ab '+(mode==="manage"?"on":"")+'" onclick="CRUD.manage(\''+id+'\')">Gerenciar dados</button>'+csvb+rep+'</div>';
+    '<button class="ab '+(mode==="manage"?"on":"")+'" onclick="CRUD.manage(\''+id+'\')">Gerenciar dados</button>'+impb+csvb+rep+'</div>';
 }
 var _nav=window.navigate;
 window.navigate=function(id){ _nav(id); if(id&&id!=="home"){var v=document.getElementById("view");if(v)v.insertAdjacentHTML("afterbegin",barHTML(id,"dash"));} };
@@ -267,7 +268,7 @@ function manage(id){
       '<label class="chkfilter"><input type="checkbox" id="crudPend" '+(FILTER[id].pend?"checked":"")+' onchange="CRUD.setPend(\''+id+'\',this.checked)"> só a vencer</label>'+
       '<input id="crudBusca" value="'+esc(FILTER[id].q)+'" placeholder="Buscar..." oninput="CRUD.filter(\''+id+'\')" style="padding:8px 11px;border:1px solid #E4E8EF;border-radius:8px;font-size:.85rem">'+
       '<button class="btn-new" onclick="CRUD.add(\''+id+'\')">＋ Novo</button></div>'+
-    '<p class="hint-edit">Marque o quadradinho <b>“Pago?”</b> para quitar em 1 clique (abate do total), ou ✎ para editar.</p>'+
+    '<p class="hint-edit">Marque o quadradinho <b>“Pago?”</b> para quitar em 1 clique (abate do total), ou ✎ para editar. Dica: use <b>Importar CSV</b> para subir várias parcelas de uma planilha.</p>'+
     '<div class="tbl-wrap"><table><thead><tr>'+head+'</tr></thead><tbody id="crudBody"></tbody></table></div>'+
     '<div id="crudCount" style="margin-top:10px;font-size:.8rem;color:#667085"></div></div>';
   renderBody(id);
@@ -295,7 +296,7 @@ function togglePago(id,i,checked){
 function fieldInput(f,cur){
   if(f.t==="status")return "";
   if(f.t==="check"){var on=(cur===true);return '<div class="fld"><label>'+f.l+'</label><label class="ckfld"><input type="checkbox" id="fld_'+f.k+'" '+(on?"checked":"")+'><span>Parcela paga / quitada</span></label></div>';}
-  if(f.auto){var d2=(cur==null||cur==="")?"\u2014":("R$ "+moneyFmt(cur));return '<div class="fld"><label>'+f.l+'</label><input id="fld_'+f.k+'" type="text" value="'+esc(d2)+'" disabled style="background:#F3F5F9;color:#667085">'+'<div style="font-size:.72rem;color:#98A2B3;margin-top:3px">Calculado automaticamente: valor pago \u2212 previsto.</div></div>';}
+  if(f.auto){var d2=(cur==null||cur==="")?"—":("R$ "+moneyFmt(cur));return '<div class="fld"><label>'+f.l+'</label><input id="fld_'+f.k+'" type="text" value="'+esc(d2)+'" disabled style="background:#F3F5F9;color:#667085">'+'<div style="font-size:.72rem;color:#98A2B3;margin-top:3px">Calculado automaticamente: valor pago − previsto.</div></div>';}
   var lbl='<label>'+f.l+(isMoney(f)?" (R$)":"")+'</label>';
   if(f.t==="money"){var disp=(cur==null||cur==="")?"":moneyFmt(cur);return '<div class="fld">'+lbl+'<div class="moneyfld"><span class="pre">R$</span><input id="fld_'+f.k+'" type="text" inputmode="decimal" value="'+esc(disp)+'" oninput="window.CRUD&&CRUD.liveCorrecao&&CRUD.liveCorrecao()" onblur="CRUD.fmtMoney(this)"></div></div>';}
   if(f.t==="date")return '<div class="fld">'+lbl+'<input id="fld_'+f.k+'" type="date" value="'+esc(cur||"")+'"></div>';
@@ -384,13 +385,79 @@ function report(id){
   setTimeout(function(){window.print();},350);
 }
 
-/* ---------- recompute inicial (reflete dados já carregados) ---------- */
+/* ---------- importação CSV (self-service) ---------- */
+function norm(s){ return String(s==null?"":s).trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," "); }
+function parseCSV(text){
+  var DQ=String.fromCharCode(34), NL=String.fromCharCode(10), CR=String.fromCharCode(13), FEFF=String.fromCharCode(65279);
+  text=String(text||""); if(text.charAt(0)===FEFF)text=text.slice(1);
+  var firstLine=text.split(/\r?\n/)[0]||"";
+  var sep=(firstLine.split(";").length>firstLine.split(",").length)?";":",";
+  var out=[],row=[],cur="",i=0,q=false,ch;
+  while(i<text.length){ ch=text.charAt(i);
+    if(q){ if(ch===DQ){ if(text.charAt(i+1)===DQ){cur+=DQ;i++;} else q=false; } else cur+=ch; }
+    else{ if(ch===DQ){q=true;} else if(ch===sep){row.push(cur);cur="";} else if(ch===NL){row.push(cur);out.push(row);row=[];cur="";} else if(ch===CR){} else {cur+=ch;} }
+    i++;
+  }
+  if(cur!==""||row.length){row.push(cur);out.push(row);}
+  return out;
+}
+function dISO(s){ s=String(s||"").trim(); if(!s||s==="—")return ""; var m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if(m)return m[3]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[1]).padStart(2,"0"); if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s; m=s.match(/^(\d{1,2})\/(\d{4})$/); if(m)return m[2]+"-"+String(m[1]).padStart(2,"0")+"-08"; if(/^\d{4}-\d{2}$/.test(s))return s+"-08"; return s; }
+function truthy(s){ s=norm(s); return s==="sim"||s==="pago"||s==="paga"||s==="true"||s==="1"||s==="x"||s==="quitado"||s==="quitada"; }
+function importCSV(id){
+  var sc=SCHEMAS[id]; if(!sc){toast("Importacao disponivel nas etapas.","warn");return;}
+  var inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,text/csv,text/plain";
+  inp.onchange=function(){ var file=inp.files&&inp.files[0]; if(!file)return;
+    var rd=new FileReader();
+    rd.onload=function(){ try{ processImport(id,String(rd.result||"")); }catch(err){ toast("Nao consegui ler o arquivo. Confira se e um CSV.","danger"); } };
+    rd.readAsText(file,"utf-8");
+  };
+  inp.click();
+}
+function processImport(id,text){
+  var sc=SCHEMAS[id];
+  var grid=parseCSV(text).filter(function(r){return r.some(function(c){return String(c).trim()!=="";});});
+  if(!grid.length){toast("Arquivo vazio.","warn");return;}
+  var header=grid[0].map(norm);
+  var colOf={}; sc.fields.forEach(function(f){ var idx=header.indexOf(norm(f.l)); if(idx<0)idx=header.indexOf(norm(f.l.replace(" (R$)",""))); colOf[f.k]=idx; });
+  var hasAny=sc.fields.some(function(f){return f.t!=="status"&&!f.auto&&colOf[f.k]>=0;});
+  if(!hasAny){toast("Cabecalho nao reconhecido. Dica: exporte o CSV desta etapa e use como modelo.","danger");return;}
+  var recs=[];
+  for(var r=1;r<grid.length;r++){
+    var line=grid[r], first=norm(line[0]);
+    if(first==="total previsto"||first==="total pago"||first==="falta"||first==="concluido")break;
+    var rec={};
+    sc.fields.forEach(function(f){
+      if(f.t==="status"||f.auto)return;
+      var ci=colOf[f.k], raw=ci>=0?line[ci]:"";
+      if(f.t==="check")rec.quitado=truthy(raw);
+      else if(isMoney(f))rec[f.k]=moneyParse(raw);
+      else if(f.t==="date")rec[f.k]=dISO(raw);
+      else if(f.t==="number")rec[f.k]=(raw===""||raw==null)?null:Number(String(raw).replace(/[^\d.-]/g,""));
+      else rec[f.k]=(raw==null?"":String(raw).trim());
+    });
+    var temAlgo=sc.fields.some(function(f){return f.t!=="status"&&f.t!=="check"&&!f.auto&&rec[f.k]!=null&&rec[f.k]!=="";});
+    if(!temAlgo&&!rec.quitado)continue;
+    rec.status=rec.quitado?"PAGO":"A VENCER";
+    if(rec.quitado&&sc.pagoFill&&(rec[sc.pagoFill]==null||rec[sc.pagoFill]===""))rec[sc.pagoFill]=rec.valor;
+    if(id==="entrada"||id==="financiamento")rec.reajuste=correcaoEntrada(rec);
+    recs.push(rec);
+  }
+  if(!recs.length){toast("Nenhuma parcela encontrada no arquivo.","warn");return;}
+  if(!confirm("Importar "+recs.length+" parcela(s)? Isso vai SUBSTITUIR as parcelas atuais desta etapa."))return;
+  DADOS[ARR[id]]=recs;
+  recompute();
+  if(window.VZSUPA&&window.VZSUPA.replaceModule)window.VZSUPA.replaceModule(id,recs);
+  toast(recs.length+" parcela(s) importada(s) e salva(s) na nuvem.","ok");
+  manage(id);
+}
+
+/* ---------- recompute inicial (reflete dados ja carregados) ---------- */
 try{ recompute(); }catch(e){}
 
-/* ---------- API pública ---------- */
-function liveCorrecao(){ var pp=document.getElementById("fld_pago"),vv=document.getElementById("fld_valor"),rr=document.getElementById("fld_reajuste"); if(!pp||!vv||!rr)return; var pv=moneyParse(pp.value),vl=moneyParse(vv.value); rr.value=(pv==null||vl==null)?"\u2014":("R$ "+moneyFmt(r2(pv-vl))); }
+/* ---------- API publica ---------- */
+function liveCorrecao(){ var pp=document.getElementById("fld_pago"),vv=document.getElementById("fld_valor"),rr=document.getElementById("fld_reajuste"); if(!pp||!vv||!rr)return; var pv=moneyParse(pp.value),vl=moneyParse(vv.value); rr.value=(pv==null||vl==null)?"—":("R$ "+moneyFmt(r2(pv-vl))); }
 window.CRUD={manage:manage,filter:filter,setPend:setPend,togglePago:togglePago,fmtMoney:fmtMoney,liveCorrecao:liveCorrecao,
   add:function(id){openForm(id,null);},edit:function(id,i){openForm(id,i);},save:save,del:del,close:closeForm,
-  report:report,exportCSV:exportCSV,gerar:gerar,saveCfg:saveCfg,cfgForma:cfgForma,recompute:recompute,_setApi:function(u){API_URL=u;}};
+  report:report,exportCSV:exportCSV,importCSV:importCSV,gerar:gerar,saveCfg:saveCfg,cfgForma:cfgForma,recompute:recompute,_setApi:function(u){API_URL=u;}};
 
 })();
