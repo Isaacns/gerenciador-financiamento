@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual do Usuário · Gerenciador de Financiamento by VIZIO</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#1C64F0;--blue-d:#1450C8;--ink:#161B26;--muted:#667085;--border:#E4E8EF;--bg:#F7F9FC;--soft:#E7EFFE;--ok:#16A34A;--ok-bg:#E7F6ED;--warn:#D97706;--warn-bg:#FBF1DC;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px 90px}
+header.top{background:linear-gradient(120% 120% at 80% 0%,#1A2030,#0B0E16);color:#fff;border-radius:0 0 20px 20px;padding:34px 30px 30px;margin-bottom:26px;box-shadow:0 14px 36px rgba(14,23,38,.18)}
+header.top .bar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+header.top .bar b{font-weight:800;letter-spacing:.14em;font-size:1rem}
+header.top .bar span{color:#9FB2D6;font-size:.84rem}
+header.top h1{font-size:1.7rem;font-weight:800;line-height:1.25}
+header.top p{color:#C8D3E8;margin-top:6px;font-size:.96rem;max-width:60ch}
+nav.toc{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin-bottom:26px;box-shadow:0 8px 28px rgba(0,0,0,.05)}
+nav.toc h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px}
+nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:30px}
+nav.toc li{margin-bottom:5px;font-size:.93rem}
+nav.toc a{color:var(--blue);text-decoration:none;font-weight:600}
+section.card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px 26px;box-shadow:0 8px 28px rgba(0,0,0,.05);margin-bottom:18px}
+h2.sec{font-size:1.22rem;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+h2.sec .n{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;background:var(--soft);color:var(--blue-d);font-size:.9rem;font-weight:800;flex:0 0 auto}
+h3{font-size:1rem;font-weight:700;margin:16px 0 4px}
+p,li{font-size:.95rem;color:#26303f}
+p{margin-bottom:8px}
+ul,ol.steps{margin:6px 0 8px 22px}
+li{margin-bottom:5px}
+.lead{color:var(--muted);margin-bottom:6px}
+.tip{background:var(--ok-bg);border-left:4px solid var(--ok);border-radius:8px;padding:10px 14px;margin:12px 0;font-size:.92rem}
+.warn{background:var(--warn-bg);border-left:4px solid var(--warn);border-radius:8px;padding:10px 14px;margin:12px 0;font-size:.92rem}
+.admin{background:#F1E9FE;border-left:4px solid #7C3AED;border-radius:8px;padding:10px 14px;margin:12px 0;font-size:.92rem}
+b.k{background:#EEF2F8;border:1px solid var(--border);border-radius:6px;padding:1px 7px;font-size:.85em;font-weight:700}
+a{color:var(--blue);font-weight:600}
+.btn{display:inline-block;background:var(--blue);color:#fff;border-radius:9px;padding:11px 18px;font-weight:700;text-decoration:none;margin:6px 0}
+.foot{color:var(--muted);font-size:.82rem;text-align:center;margin-top:28px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+.mod{border:1px solid var(--border);border-radius:11px;padding:12px 14px;background:#FCFDFF}
+.mod b{display:block;font-size:.95rem;margin-bottom:2px}
+.mod span{font-size:.86rem;color:var(--muted)}
+@media(max-width:640px){nav.toc ol{columns:1}.grid{grid-template-columns:1fr}}
+@media print{body{background:#fff}header.top{box-shadow:none}section.card,nav.toc{box-shadow:none;break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="bar"><b>VIZIO</b><span>· um produto INPERSON</span></div>
+    <h1>Manual do Usuário</h1>
+    <p>Gerenciador de Financiamento — acompanhe seu financiamento imobiliário (parcelas, juros, documentação e evolução do pagamento) em um sistema simples e seguro.</p>
+  </header>
+
+  <nav class="toc">
+    <h2>Conteúdo</h2>
+    <ol>
+      <li><a href="#acesso">Como acessar</a></li>
+      <li><a href="#instalar">Instalar como aplicativo</a></li>
+      <li><a href="#inicio">A tela inicial</a></li>
+      <li><a href="#modulos">Os módulos</a></li>
+      <li><a href="#dados">Gerenciar dados</a></li>
+      <li><a href="#corrigida">Parcela corrigida</a></li>
+      <li><a href="#relatorios">Relatórios e exportação</a></li>
+      <li><a href="#assinatura">Assinatura</a></li>
+      <li><a href="#admin">Área do administrador</a></li>
+      <li><a href="#suporte">Dúvidas e suporte</a></li>
+    </ol>
+  </nav>
+
+  <section class="card" id="acesso">
+    <h2 class="sec"><span class="n">1</span> Como acessar</h2>
+    <p class="lead">O sistema funciona pelo navegador, em qualquer aparelho (computador, celular ou tablet).</p>
+    <a class="btn" href="https://isaacns.github.io/gerenciador-financiamento/">Abrir o sistema</a>
+    <h3>Entrar</h3>
+    <ol class="steps">
+      <li>Acesse o endereço acima.</li>
+      <li>Digite seu <b>e-mail</b> e <b>senha</b> e clique em <b class="k">Entrar</b>.</li>
+    </ol>
+    <h3>Criar conta (primeiro acesso)</h3>
+    <ol class="steps">
+      <li>Na tela de login, clique em <b class="k">Criar conta</b>.</li>
+      <li>Informe nome, e-mail e senha, aceite os termos e confirme.</li>
+      <li>Você receberá um e-mail de confirmação — abra e confirme para ativar a conta.</li>
+    </ol>
+    <h3>Esqueci minha senha</h3>
+    <p>Clique em <b class="k">Esqueci minha senha</b>, informe seu e-mail e siga o link que chega na sua caixa de entrada para criar uma nova senha.</p>
+    <div class="tip">Os e-mails do sistema chegam de <b>nao-responder@viziostudio.com.br</b>. Se não encontrar, confira a pasta <b>Lixo Eletrônico</b> e marque como "não é lixo eletrônico".</div>
+    <div class="tip">Cada pessoa enxerga <b>apenas os próprios dados</b> — seu financiamento é privado e isolado.</div>
+  </section>
+
+  <section class="card" id="instalar">
+    <h2 class="sec"><span class="n">2</span> Instalar como aplicativo</h2>
+    <p class="lead">Dá para instalar o sistema como um app, com ícone próprio e abrindo em janela sem a barra do navegador.</p>
+    <h3>No computador (Chrome ou Edge)</h3>
+    <ol class="steps">
+      <li>Abra o sistema no navegador.</li>
+      <li>No <b>canto direito da barra de endereço</b>, clique no ícone de <b>instalar</b> (uma telinha com seta ↓).</li>
+      <li>Ou: menu <b class="k">⋮</b> → <b>Transmitir, salvar e compartilhar</b> → <b>Instalar Gerenciador de Financiamento…</b></li>
+      <li>Confirme em <b class="k">Instalar</b>.</li>
+    </ol>
+    <h3>No Android (Chrome)</h3>
+    <p>Menu <b class="k">⋮</b> → <b>Instalar app</b> (ou "Adicionar à tela inicial").</p>
+    <h3>No iPhone/iPad (Safari)</h3>
+    <p>Botão <b>Compartilhar</b> → <b>Adicionar à Tela de Início</b>.</p>
+    <div class="tip">Se o ícone de instalar não aparecer, recarregue a página segurando <b class="k">Ctrl</b>+<b class="k">Shift</b>+<b class="k">R</b> e aguarde alguns segundos.</div>
+  </section>
+
+  <section class="card" id="inicio">
+    <h2 class="sec"><span class="n">3</span> A tela inicial</h2>
+    <p>Depois de entrar, a tela <b>Início</b> mostra um resumo do seu financiamento: total investido, custo total, quanto falta pagar e o andamento de cada etapa. Em uma conta nova, tudo aparece zerado — os números se preenchem conforme você cadastra seus dados.</p>
+    <p>No menu lateral ficam todos os módulos. No celular, toque no ícone de menu para abri-lo.</p>
+  </section>
+
+  <section class="card" id="modulos">
+    <h2 class="sec"><span class="n">4</span> Os módulos</h2>
+    <div class="grid">
+      <div class="mod"><b>Início</b><span>Resumo geral e indicadores.</span></div>
+      <div class="mod"><b>Visão Geral</b><span>Panorama de custos e progresso.</span></div>
+      <div class="mod"><b>Entrada Parcelada</b><span>Parcelas da entrada, com reajuste/parcela corrigida automática.</span></div>
+      <div class="mod"><b>Documentação</b><span>Custos e taxas de documentação.</span></div>
+      <div class="mod"><b>Juros de Obra</b><span>Juros pagos durante a obra.</span></div>
+      <div class="mod"><b>Financiamento</b><span>O financiamento em si (SAC/PRICE), parcela a parcela.</span></div>
+      <div class="mod"><b>Simulador</b><span>Simulação de amortização antecipada (aporte extra).</span></div>
+    </div>
+  </section>
+
+  <section class="card" id="dados">
+    <h2 class="sec"><span class="n">5</span> Gerenciar dados</h2>
+    <p class="lead">Cada etapa (Entrada, Documentação, Juros de Obra, Financiamento) tem um botão <b class="k">Gerenciar dados</b>.</p>
+    <h3>Configurar a etapa e gerar parcelas</h3>
+    <ol class="steps">
+      <li>Abra a etapa e clique em <b class="k">Gerenciar dados</b>.</li>
+      <li>Em <b>Configurar</b>, informe os valores base (ex.: valor total, nº de parcelas, data inicial, juros).</li>
+      <li>Use <b>Gerar parcelas</b> para o sistema montar o cronograma automaticamente.</li>
+    </ol>
+    <h3>Incluir, editar ou excluir</h3>
+    <ol class="steps">
+      <li><b>Novo</b>: adiciona uma parcela/lançamento manualmente.</li>
+      <li><b>Editar</b>: ajusta valores de uma parcela existente.</li>
+      <li><b>Excluir</b>: remove um lançamento.</li>
+    </ol>
+    <h3>Marcar como pago</h3>
+    <p>Ao receber/pagar uma parcela, marque-a como <b>paga</b> e informe o <b>valor realmente pago</b>. O sistema atualiza os totais na hora.</p>
+    <div class="tip">Tudo é salvo automaticamente na nuvem. Você pode fechar e voltar depois que os dados continuam lá.</div>
+  </section>
+
+  <section class="card" id="corrigida">
+    <h2 class="sec"><span class="n">6</span> Parcela corrigida (pago × previsto)</h2>
+    <p>Na <b>Entrada</b> e no <b>Financiamento</b>, quando o valor pago é diferente do previsto (por reajuste do contrato, correção da CAIXA, etc.), o sistema calcula <b>automaticamente a diferença</b> — a "parcela corrigida".</p>
+    <ul>
+      <li>A coluna <b>Pago</b> mostra o valor real informado.</li>
+      <li>A coluna <b>Diferença</b> mostra quanto variou em relação ao previsto.</li>
+      <li>Um indicador soma a <b>diferença/reajuste acumulada</b> de toda a etapa.</li>
+    </ul>
+    <p>Assim você enxerga exatamente quanto o contrato corrigiu ao longo do tempo, sem precisar calcular à mão.</p>
+  </section>
+
+  <section class="card" id="relatorios">
+    <h2 class="sec"><span class="n">7</span> Relatórios e exportação</h2>
+    <h3>Relatório em PDF</h3>
+    <p>Cada etapa tem um botão de <b>Relatório PDF</b> — gera um documento pronto para salvar, imprimir ou enviar.</p>
+    <h3>Exportar CSV (Excel)</h3>
+    <p>O botão <b>Exportar CSV</b> baixa os dados da etapa em uma planilha que abre direto no Excel, já com o total no rodapé.</p>
+  </section>
+
+  <section class="card" id="assinatura">
+    <h2 class="sec"><span class="n">8</span> Assinatura</h2>
+    <p>No menu <b>Assinatura</b> você vê o status do seu plano. Para assinar, clique em <b class="k">Assinar agora</b> — o pagamento é processado com segurança e a renovação é mensal e automática.</p>
+    <p>Após o pagamento, o status muda para <b>Assinatura ativa</b> automaticamente.</p>
+  </section>
+
+  <section class="card" id="admin">
+    <h2 class="sec"><span class="n">9</span> Área do administrador</h2>
+    <p class="lead">Recursos visíveis apenas para administradores (Isaac e Sarah).</p>
+    <div class="admin"><b>Configurador:</b> monta uma instância completa (dados de financiamento prontos) e entrega na conta de um cliente — basta informar o e-mail dele. Ideal para a entrega "feito para você".</div>
+    <div class="admin"><b>Clientes:</b> painel com a lista de contratantes, parcelas por etapa, valor investido e opção de reenviar convite.</div>
+    <p>Esses itens não aparecem para clientes comuns — só na conta de administrador.</p>
+  </section>
+
+  <section class="card" id="suporte">
+    <h2 class="sec"><span class="n">10</span> Dúvidas e suporte</h2>
+    <p>Precisa de ajuda? Fale com a gente: <a href="mailto:contato@viziostudio.com.br">contato@viziostudio.com.br</a>.</p>
+    <p>Os cálculos do sistema são uma referência para organização e planejamento; em caso de divergência, valem sempre os documentos oficiais do banco/contrato.</p>
+  </section>
+
+  <div class="foot">Gerenciador de Financiamento by VIZIO · um produto INPERSON · Manual do Usuário</div>
+</div>
+</body>
+</html>
