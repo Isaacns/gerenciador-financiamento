@@ -176,4 +176,7 @@ window.startApp=function(){ if(_startApp)_startApp();
     var out=bar.querySelector("button.out"); if(out)bar.insertBefore(b,out); else bar.appendChild(b);
   }
 };
+
+/* ----- carrega o gating por ultimo (bloqueio por assinatura) ----- */
+try{var _vzg=document.createElement("script");_vzg.src="gating.js";_vzg.async=false;document.head.appendChild(_vzg);}catch(e){}
 })();
