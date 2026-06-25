@@ -452,8 +452,15 @@ function renderAssinatura(v){
     else if(st==='past_due'){badge='<span class="badge vencer">Pagamento pendente</span>';msg='Há um pagamento pendente. Regularize para manter o acesso.';}
     else if(st==='canceled'){badge='<span class="badge vencer">Cancelada</span>';msg='Sua assinatura foi cancelada. Você pode assinar novamente quando quiser.';}
     else {badge='<span class="badge vencer">Sem assinatura</span>';msg='Você ainda não tem uma assinatura ativa.';}
-    var link=cfg.assinaturaUrl?(cfg.assinaturaUrl+(cfg.assinaturaUrl.indexOf('?')>=0?'&':'?')+'prefilled_email='+encodeURIComponent(email)):'';
-    var btn=(st==='active'||st==='trialing')?'':(link?'<a href="'+link+'" target="_blank" style="display:inline-block;text-decoration:none;margin-top:12px;background:#1C64F0;color:#fff;font-weight:700;padding:11px 18px;border-radius:9px">Assinar agora — R$ 29,90/mês</a>':'<div style="color:#98A2B3;margin-top:10px;font-size:.84rem">Link de assinatura ainda não configurado.</div>');
+    var btn;
+    if(st==='active'||st==='trialing'){
+      btn='<div style="margin-top:12px;font-weight:700;color:#16A34A;font-size:.92rem">Assinatura ativa ✓</div>';
+    } else if(window.assinar){
+      var label=(st==='past_due')?'Regularizar pagamento':'Assinar agora — R$ 29,90/mês';
+      btn='<button type="button" onclick="window.assinar({btn:this})" style="display:inline-block;border:0;cursor:pointer;margin-top:12px;background:#1C64F0;color:#fff;font-weight:700;padding:11px 18px;border-radius:9px;font-size:.92rem">'+label+'</button>';
+    } else {
+      btn='<div style="color:#98A2B3;margin-top:10px;font-size:.84rem">Assinatura disponível apenas no modo nuvem.</div>';
+    }
     var box=document.getElementById('assBox'); if(!box)return;
     box.innerHTML='<div style="margin-bottom:10px">'+badge+'</div>'+
       '<div style="background:#F7F9FC;border:1px solid #E4E8EF;border-radius:12px;padding:18px 20px;max-width:420px">'+
