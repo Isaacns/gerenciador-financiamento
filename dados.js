@@ -7,6 +7,7 @@ const DADOS = {
     produto: "Gerenciador de Financiamento",
     instancia: "Meu Apê 203 — Dom Pedro I",
     propLabel: "Proprietária",
+    trialDays: 0,
     supabaseUrl: "https://emyjzjadmxgbtmxnzazu.supabase.co",
     supabaseKey: "sb_publishable_PY2YDxUzGgaXRVtvCcasBA_Ml7YUBTC",
     assinaturaUrl: "https://buy.stripe.com/6oUdRbafr8nKfMgfP1eIw00"
