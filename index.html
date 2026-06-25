@@ -691,6 +691,7 @@ function renderSim(v){
   const sm=simBase();
   v.innerHTML=`
     <div class="card"><h2>Simulador de amortização antecipada</h2><div class="cap">Edite os campos em azul. O modelo: parcela fixa mensal + juros sobre o saldo devedor (aproximação do contrato).</div>
+      <div class="simmode" style="display:flex;gap:18px;margin:8px 0 6px;font-size:.86rem;color:var(--text);align-items:center"><b style="font-weight:700;color:var(--muted)">Modo:</b> <label style="cursor:pointer;display:inline-flex;gap:5px;align-items:center"><input type="radio" name="simModo" value="prazo" checked onchange="runSim()"> Reduzir prazo</label> <label style="cursor:pointer;display:inline-flex;gap:5px;align-items:center"><input type="radio" name="simModo" value="parcela" onchange="runSim()"> Reduzir parcela</label></div>
       <div class="simgrid">
         <div class="simf"><label>Saldo devedor (R$)</label><input id="sSaldo" type="number" value="${sm.saldo}" oninput="runSim()"></div>
         <div class="simf"><label>Juros mensal (%)</label><input id="sJuros" type="number" step="0.01" value="${(sm.juros*100).toFixed(2)}" oninput="runSim()"></div>
@@ -709,25 +710,41 @@ function runSim(){
   const parc=+document.getElementById('sParc').value||0;
   const extra=+document.getElementById('sExtra').value||0;
   const unico=+document.getElementById('sUnico').value||0;
-  const base=simulate(saldo,taxa,parc,0,0);
-  const sim=simulate(saldo,taxa,parc,extra,unico);
-  const okBase=isFinite(base.meses),okSim=isFinite(sim.meses);
-  const ecoMeses=okBase&&okSim?base.meses-sim.meses:0;
-  const ecoJuros=okBase&&okSim?base.juros-sim.juros:0;
+  const me=document.querySelector('input[name="simModo"]:checked');
+  const modo=me?me.value:'prazo';
   const fa=v=>isFinite(v)?v:'∞';
-  document.getElementById('simRes').innerHTML=`
+  const base=simulate(saldo,taxa,parc,0,0);
+  let cs;
+  if(modo==='parcela'){
+    const term=(isFinite(base.meses)&&base.meses>0)?base.meses:0;
+    const novoSaldo=Math.max(0,saldo-unico);
+    let novaParc=0; if(term>0){ novaParc = taxa>0 ? novoSaldo*taxa/(1-Math.pow(1+taxa,-term)) : novoSaldo/term; }
+    const ecoMes=parc-novaParc;
+    document.getElementById('simRes').innerHTML=`
+    <div class="rc"><div class="l">Parcela atual</div><div class="v">${fmtBRL(parc)}</div><div class="hint" style="font-size:.74rem;color:var(--muted)">Prazo: ${fa(base.meses)} meses</div></div>
+    <div class="rc"><div class="l">Nova parcela</div><div class="v">${fmtBRL(novaParc)}</div><div class="hint" style="font-size:.74rem;color:var(--muted)">Mesmo prazo (${fa(term)} meses)</div></div>
+    <div class="rc eco"><div class="l">Você reduz por mês</div><div class="v">${fmtBRL(ecoMes>0?ecoMes:0)}</div><div class="hint" style="font-size:.74rem;color:#7DE3AE">${ecoMes>0?'Total no prazo: '+fmtBRL(ecoMes*term):'—'}</div></div>`;
+    cs=curve(novaParc,unico);
+  } else {
+    const sim=simulate(saldo,taxa,parc,extra,unico);
+    const okBase=isFinite(base.meses),okSim=isFinite(sim.meses);
+    const ecoMeses=okBase&&okSim?base.meses-sim.meses:0;
+    const ecoJuros=okBase&&okSim?base.juros-sim.juros:0;
+    document.getElementById('simRes').innerHTML=`
     <div class="rc"><div class="l">Sem aporte</div><div class="v">${fa(base.meses)} <span style="font-size:.8rem;font-weight:600;color:var(--muted)">meses</span></div><div class="hint" style="font-size:.74rem;color:var(--muted)">Juros: ${okBase?fmtBRL(base.juros):'—'}</div></div>
     <div class="rc"><div class="l">Com aporte</div><div class="v">${fa(sim.meses)} <span style="font-size:.8rem;font-weight:600;color:var(--muted)">meses</span></div><div class="hint" style="font-size:.74rem;color:var(--muted)">Juros: ${okSim?fmtBRL(sim.juros):'—'}</div></div>
     <div class="rc eco"><div class="l">Você economiza</div><div class="v">${fmtBRL(ecoJuros)}</div><div class="hint" style="font-size:.74rem;color:#7DE3AE">${ecoMeses>0?'− '+ecoMeses+' meses ('+(ecoMeses/12).toFixed(1).replace('.',',')+' anos)':'—'}</div></div>`;
-  // curvas de saldo
-  function curve(extraV,unicoV){let s=saldo-(unicoV||0),pts=[s],i=0;const pay=parc+(extraV||0);while(s>0.005&&i<5000){const j=s*taxa;let pr=pay-j;if(pr<=0)break;if(pr>s)pr=s;s-=pr;pts.push(Math.max(0,s));i++;}return pts;}
-  const cb=curve(0,0),cs=curve(extra,unico);
+    cs=curve(parc+extra,unico);
+  }
+  function curve(pay,unicoV){let s=saldo-(unicoV||0),pts=[s],i=0;while(s>0.005&&i<5000){const j=s*taxa;let pr=pay-j;if(pr<=0)break;if(pr>s)pr=s;s-=pr;pts.push(Math.max(0,s));i++;}return pts;}
+  const cb=curve(parc,0);
+  if(!cs)cs=curve(parc+extra,unico);
   const maxLen=Math.max(cb.length,cs.length);
   const labels=Array.from({length:maxLen},(_,i)=>i);
   if(chS)chS.destroy();
   chS=new Chart(document.getElementById('cSim'),{type:'line',data:{labels,datasets:[
-    {label:'Sem aporte',data:cb,borderColor:'#98A2B3',backgroundColor:'rgba(152,162,179,.08)',fill:false,tension:.2,pointRadius:0,borderWidth:2},
-    {label:'Com aporte',data:cs,borderColor:'#1C64F0',backgroundColor:'rgba(28,100,240,.10)',fill:true,tension:.2,pointRadius:0,borderWidth:2.5}
+    {label:(modo==='parcela'?'Atual':'Sem aporte'),data:cb,borderColor:'#98A2B3',backgroundColor:'rgba(152,162,179,.08)',fill:false,tension:.2,pointRadius:0,borderWidth:2},
+    {label:(modo==='parcela'?'Com nova parcela':'Com aporte'),data:cs,borderColor:'#1C64F0',backgroundColor:'rgba(28,100,240,.10)',fill:true,tension:.2,pointRadius:0,borderWidth:2.5}
   ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:8,font:{family:'Inter'}}},tooltip:{callbacks:{title:c=>'Mês '+c[0].label,label:c=>c.dataset.label+': '+fmtBRL(c.parsed.y)}}},scales:{y:{ticks:{callback:x=>'R$ '+(x/1000).toFixed(0)+'k',font:{family:'Inter'}},grid:{color:'#EEF1F6'},min:0},x:{grid:{display:false},title:{display:true,text:'meses',font:{family:'Inter',size:10}},ticks:{maxTicksLimit:14,font:{family:'Inter',size:10}}}}}});
 }
 
