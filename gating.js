@@ -31,7 +31,7 @@ if(!cfg().supabaseUrl){ return; } // modo demo: gating inerte
 
 var TRIAL_DAYS  = Number(cfg().trialDays != null ? cfg().trialDays : 14);
 var GATING_ON   = cfg().gating !== false;
-var PRICE_LABEL = cfg().precoLabel || "R$ 29,90/mês";
+var PRICE_LABEL = cfg().precoLabel || "R$ 49,90/mês";
 var DAY = 86400000;
 var STATE = { ready:false, admin:false, status:"none", active:false, pastDue:false,
               trialValid:false, daysLeft:null, blocked:false };

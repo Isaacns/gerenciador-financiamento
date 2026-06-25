@@ -456,7 +456,7 @@ function renderAssinatura(v){
     if(st==='active'||st==='trialing'){
       btn='<div style="margin-top:12px;font-weight:700;color:#16A34A;font-size:.92rem">Assinatura ativa ✓</div>';
     } else if(window.assinar){
-      var label=(st==='past_due')?'Regularizar pagamento':'Assinar agora — R$ 29,90/mês';
+      var label=(st==='past_due')?'Regularizar pagamento':'Assinar agora — R$ 49,90/mês';
       btn='<button type="button" onclick="window.assinar({btn:this})" style="display:inline-block;border:0;cursor:pointer;margin-top:12px;background:#1C64F0;color:#fff;font-weight:700;padding:11px 18px;border-radius:9px;font-size:.92rem">'+label+'</button>';
     } else {
       btn='<div style="color:#98A2B3;margin-top:10px;font-size:.84rem">Assinatura disponível apenas no modo nuvem.</div>';
@@ -465,7 +465,7 @@ function renderAssinatura(v){
     box.innerHTML='<div style="margin-bottom:10px">'+badge+'</div>'+
       '<div style="background:#F7F9FC;border:1px solid #E4E8EF;border-radius:12px;padding:18px 20px;max-width:420px">'+
       '<div style="font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:#667085;font-weight:700">Plano mensal</div>'+
-      '<div style="font-size:1.7rem;font-weight:800;color:#1C64F0;margin:2px 0">R$ 29,90<span style="font-size:.9rem;color:#667085;font-weight:600"> /mês</span></div>'+
+      '<div style="font-size:1.7rem;font-weight:800;color:#1C64F0;margin:2px 0">R$ 49,90<span style="font-size:.9rem;color:#667085;font-weight:600"> /mês</span></div>'+
       '<p style="font-size:.86rem;color:#475467;margin:8px 0 0">'+msg+'</p>'+btn+'</div>';
   }
   if(window.SUPA){ window.SUPA.from('fin_assinaturas').select('*').maybeSingle().then(function(r){render(r&&r.data);}).catch(function(){render(null);}); }
