@@ -145,6 +145,7 @@ code{background:#eef2fb;padding:1px 6px;border-radius:5px;font-size:.85em}
       <div class="sec" style="margin-top:16px;color:#16A34A">Entregar pronto na conta do cliente (premium)</div>
       <div class="fld"><label>E-mail do cliente (conta destino)</label><input id="f_clientemail" type="email" placeholder="cliente@email.com"></div>
       <button class="btn" style="background:#16A34A" onclick="enviarCliente()">Enviar dados para a conta do cliente</button>
+      <button class="btn" style="background:#1C64F0" onclick="criarAcesso()" title="Cria o login e envia o convite; o cliente preenche os dados">Criar so o acesso (cliente preenche)</button>
       <div id="seedStatus" style="font-size:.82rem;color:#667085;margin-top:8px"></div>
       <div style="font-size:.74rem;color:#98A2B3;margin-top:4px">O cliente precisa já ter criado a conta com este e-mail. Os dados substituem o que houver na conta dele.</div>
     </div>
@@ -368,6 +369,30 @@ async function enviarCliente(){
     else st.innerHTML='<b style="color:#DC2626">Erro:</b> '+((r&&r.error)||('HTTP '+resp.status));
   }catch(e){st.innerHTML='<b style="color:#DC2626">Erro de rede:</b> '+e.message;}
 }
+async function criarAcesso(){
+  if(!CUR)recalc();
+  var st=document.getElementById('seedStatus');
+  var email=((document.getElementById('f_clientemail')||{}).value||'').trim();
+  if(!email){st.innerHTML='<b style="color:#DC2626">Informe o e-mail do cliente.</b>';return;}
+  var P=window.parent, SUPA=P&&P.SUPA, CFG=(P&&P.DADOS&&P.DADOS._cfg)||{};
+  if(!SUPA||!CFG.supabaseUrl){st.innerHTML='<b style="color:#DC2626">Abra o Configurador dentro do Gerenciador, logado como admin.</b>';return;}
+  st.textContent='Criando acesso...';
+  var sess=await SUPA.auth.getSession();
+  var token=(sess&&sess.data&&sess.data.session)?sess.data.session.access_token:null;
+  if(!token){st.innerHTML='<b style="color:#DC2626">Sessao expirada. Entre novamente.</b>';return;}
+  var D=CUR;
+  var payload={clientEmail:email,appUrl:(window.parent&&window.parent.location?window.parent.location.href.split('#')[0]:''),instancia:D._meta.imovel,nome:(D._users&&D._users[0]?D._users[0].nome:''),propLabel:D._cfg.propLabel,
+    modules:{entrada:[],doc:[],obra:[],fin:[]},configs:{}};
+  try{
+    var resp=await fetch(CFG.supabaseUrl.replace(/\/+$/,'')+'/functions/v1/seed-client',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':CFG.supabaseKey||''},
+      body:JSON.stringify(payload)});
+    var r=await resp.json();
+    if(r&&r.ok){var extra=r.created?'Conta criada e convite enviado por e-mail.':'Acesso pronto. O cliente preenche os proprios dados ao entrar.';st.innerHTML='<b style="color:#16A34A">Acesso criado!</b> '+extra;}
+    else st.innerHTML='<b style="color:#DC2626">Erro:</b> '+((r&&r.error)||('HTTP '+resp.status));
+  }catch(e){st.innerHTML='<b style="color:#DC2626">Erro de rede:</b> '+e.message;}
+}
+
 function download(name,content,type){
   const blob=new Blob([content],{type:type||'text/plain'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();
