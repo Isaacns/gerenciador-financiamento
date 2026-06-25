@@ -191,9 +191,10 @@ function barHTML(id,mode){
   var rep='<button class="ab ghost" onclick="CRUD.report(\''+id+'\')">Relatório PDF</button>';
   var csvb=SCHEMAS[id]?'<button class="ab" onclick="CRUD.exportCSV(\''+id+'\')">Exportar CSV</button>':'';
   var impb=SCHEMAS[id]?'<button class="ab" onclick="CRUD.importCSV(\''+id+'\')" title="Importar parcelas de uma planilha CSV">Importar CSV</button>':'';
+  var amb=(id==="financiamento")?'<button class="ab" onclick="CRUD.amortizar()" title="Registrar amortizacao antecipada">Amortizar</button>':'';
   if(NO_CRUD[id])return '<div class="abar"><button class="ab on" onclick="window.navigate(\''+id+'\')">Painel</button>'+rep+'</div>';
   return '<div class="abar"><button class="ab '+(mode==="dash"?"on":"")+'" onclick="window.navigate(\''+id+'\')">Painel</button>'+
-    '<button class="ab '+(mode==="manage"?"on":"")+'" onclick="CRUD.manage(\''+id+'\')">Gerenciar dados</button>'+impb+csvb+rep+'</div>';
+    '<button class="ab '+(mode==="manage"?"on":"")+'" onclick="CRUD.manage(\''+id+'\')">Gerenciar dados</button>'+amb+impb+csvb+rep+'</div>';
 }
 var _nav=window.navigate;
 window.navigate=function(id){ _nav(id); if(id&&id!=="home"){var v=document.getElementById("view");if(v)v.insertAdjacentHTML("afterbegin",barHTML(id,"dash"));} };
@@ -385,6 +386,64 @@ function report(id){
   setTimeout(function(){window.print();},350);
 }
 
+/* ---------- amortizacao antecipada (recalcula o cronograma do financiamento) ---------- */
+function finTaxa(){ var c=cfg("financiamento"); var i=(c.taxa||0)/100; if(!i&&DADOS.finMeta&&DADOS.finMeta.jurosMensal)i=Number(DADOS.finMeta.jurosMensal)||0; return i; }
+function nextUnpaidIdx(arr){ for(var k=0;k<arr.length;k++){ if(!isPago(arr[k]))return k; } return arr.length?arr.length-1:0; }
+function recalcFin(arr,i,sist,aporte,fromIdx,modo){
+  var keep=arr.slice(0,fromIdx);
+  var saldoStart=fromIdx>0?(Number(arr[fromIdx-1].saldo)||0):finOriginal(arr);
+  var saldo=r2(saldoStart-(Number(aporte)||0)); if(saldo<0)saldo=0;
+  var baseMes=(arr[fromIdx]&&arr[fromIdx].mes)?arr[fromIdx].mes:addMonths((cfg("financiamento").data)||"2027-01",fromIdx);
+  var remaining=arr.length-fromIdx, out=keep.slice();
+  function push(off,parc,amort,sal){ out.push({parcela:0,mes:addMonths(baseMes,off),valor:r2(parc),pago:null,reajuste:null,amort:r2(amort),total:r2(parc),saldo:r2(Math.max(0,sal)),quitado:false,status:"A VENCER"}); }
+  if(saldo>0.005&&remaining>0){
+    if(modo==="parcela"){
+      if(sist==="PRICE"){ var parc=i>0?saldo*i/(1-Math.pow(1+i,-remaining)):saldo/remaining;
+        for(var k=0;k<remaining;k++){ var j=saldo*i,a=parc-j; if(a>saldo)a=saldo; saldo=saldo-a; push(k,a+j,a,saldo); if(saldo<=0.005)break; } }
+      else { var am=saldo/remaining;
+        for(var k2=0;k2<remaining;k2++){ var j2=saldo*i,a2=am; if(a2>saldo)a2=saldo; saldo=saldo-a2; push(k2,a2+j2,a2,saldo); if(saldo<=0.005)break; } }
+    } else {
+      if(sist==="PRICE"){ var parcK=Number(arr[fromIdx]&&arr[fromIdx].valor)||0; if(parcK<=0&&i>0)parcK=saldoStart*i/(1-Math.pow(1+i,-remaining));
+        var off=0; while(saldo>0.005&&off<2000){ var jp=saldo*i,ap=parcK-jp; if(ap<=0)break; if(ap>saldo)ap=saldo; saldo=saldo-ap; push(off,ap+jp,ap,saldo); off++; } }
+      else { var amK=Number(arr[fromIdx]&&arr[fromIdx].amort)||0; if(amK<=0)amK=finOriginal(arr)/(arr.length||1);
+        var o2=0; while(saldo>0.005&&o2<5000){ var js=saldo*i,as=amK; if(as>saldo)as=saldo; saldo=saldo-as; push(o2,as+js,as,saldo); o2++; } }
+    }
+  }
+  out.forEach(function(e,ix){ e.parcela=ix+1; });
+  return out;
+}
+function amortizar(){
+  var arr=DADOS.fin||[]; if(!arr.length){ toast("Gere o financiamento primeiro (Configurar -> Gerar parcelas).","warn"); return; }
+  var fu=nextUnpaidIdx(arr); var defParc=(arr[fu]&&arr[fu].parcela)||1;
+  var ovl=document.createElement("div"); ovl.className="ovl"; ovl.id="crudOvl";
+  ovl.innerHTML='<div class="modal"><h3>Registrar amortizacao antecipada</h3><div class="body">'+
+    '<div class="fld"><label>Valor do aporte (R$)</label><div class="moneyfld"><span class="pre">R$</span><input id="am_val" type="text" inputmode="decimal" onblur="CRUD.fmtMoney(this)"></div></div>'+
+    '<div class="fld"><label>Aplicar a partir da parcela no</label><input id="am_parc" type="number" min="1" value="'+defParc+'"></div>'+
+    '<div class="fld"><label>Como recalcular</label>'+
+      '<label class="ckfld" style="margin-bottom:8px"><input type="radio" name="am_modo" value="prazo" checked><span>Reduzir o prazo (mantem a parcela, quita antes)</span></label>'+
+      '<label class="ckfld"><input type="radio" name="am_modo" value="parcela"><span>Reduzir a parcela (mantem o prazo, parcela menor)</span></label>'+
+    '</div></div>'+
+    '<div class="foot"><button class="btn-c" onclick="CRUD.close()">Cancelar</button><button class="btn-s" onclick="CRUD.amortizarAplica()">Aplicar e recalcular</button></div></div>';
+  ovl.addEventListener("click",function(ev){if(ev.target===ovl)closeForm();});
+  document.body.appendChild(ovl); var fi=document.getElementById("am_val"); if(fi)fi.focus();
+}
+function amortizarAplica(){
+  var arr=DADOS.fin||[]; if(!arr.length)return;
+  var aporte=moneyParse((document.getElementById("am_val")||{}).value);
+  var parcNo=parseInt((document.getElementById("am_parc")||{}).value)||1;
+  var me=document.querySelector('input[name="am_modo"]:checked'); var modo=me?me.value:"prazo";
+  if(!aporte||aporte<=0){ toast("Informe o valor do aporte.","warn"); return; }
+  var fromIdx=-1; for(var k=0;k<arr.length;k++){ if(Number(arr[k].parcela)===parcNo){fromIdx=k;break;} }
+  if(fromIdx<0)fromIdx=Math.max(0,Math.min(parcNo-1,arr.length-1));
+  var i=finTaxa(), sist=(cfg("financiamento").tipo||"SAC"), antes=arr.length;
+  var novo=recalcFin(arr,i,sist,aporte,fromIdx,modo);
+  DADOS.fin=novo; recompute();
+  if(window.VZSUPA&&window.VZSUPA.replaceModule)window.VZSUPA.replaceModule("financiamento",novo);
+  closeForm();
+  var msg=(modo==="prazo")?("Amortizacao aplicada. Prazo: "+antes+" -> "+novo.length+" parcelas."):("Amortizacao aplicada. Parcela recalculada (prazo mantido).");
+  toast(msg,"ok"); manage("financiamento");
+}
+
 /* ---------- importação CSV (self-service) ---------- */
 function norm(s){ return String(s==null?"":s).trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," "); }
 function parseCSV(text){
@@ -458,6 +517,6 @@ try{ recompute(); }catch(e){}
 function liveCorrecao(){ var pp=document.getElementById("fld_pago"),vv=document.getElementById("fld_valor"),rr=document.getElementById("fld_reajuste"); if(!pp||!vv||!rr)return; var pv=moneyParse(pp.value),vl=moneyParse(vv.value); rr.value=(pv==null||vl==null)?"—":("R$ "+moneyFmt(r2(pv-vl))); }
 window.CRUD={manage:manage,filter:filter,setPend:setPend,togglePago:togglePago,fmtMoney:fmtMoney,liveCorrecao:liveCorrecao,
   add:function(id){openForm(id,null);},edit:function(id,i){openForm(id,i);},save:save,del:del,close:closeForm,
-  report:report,exportCSV:exportCSV,importCSV:importCSV,gerar:gerar,saveCfg:saveCfg,cfgForma:cfgForma,recompute:recompute,_setApi:function(u){API_URL=u;}};
+  report:report,exportCSV:exportCSV,importCSV:importCSV,amortizar:amortizar,amortizarAplica:amortizarAplica,gerar:gerar,saveCfg:saveCfg,cfgForma:cfgForma,recompute:recompute,_setApi:function(u){API_URL=u;}};
 
 })();
