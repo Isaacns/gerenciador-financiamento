@@ -712,6 +712,7 @@ function runSim(){
   const unico=+document.getElementById('sUnico').value||0;
   const me=document.querySelector('input[name="simModo"]:checked');
   const modo=me?me.value:'prazo';
+  const _exf=document.getElementById('sExtra'); if(_exf){var _exc=_exf.closest('.simf'); if(_exc)_exc.style.display=(modo==='parcela')?'none':'';}
   const fa=v=>isFinite(v)?v:'∞';
   const base=simulate(saldo,taxa,parc,0,0);
   let cs;

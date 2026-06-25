@@ -18,7 +18,7 @@ var MAP = {
   entrada:      {t:"fin_entrada",       arr:"entrada", cols:["parcela","venc","valor","pago","reajuste","quitado","status"]},
   doc:          {t:"fin_doc",           arr:"doc",     cols:["parcela","rtbi","cartorio","total","quitado","status"]},
   obra:         {t:"fin_obra",          arr:"juros",   cols:["parcela","venc","valor","evolucao","total","quitado","status"]},
-  financiamento:{t:"fin_financiamento", arr:"fin",     cols:["parcela","mes","valor","amort","saldo","quitado","status"]}
+  financiamento:{t:"fin_financiamento", arr:"fin",     cols:["parcela","mes","valor","pago","reajuste","amort","saldo","quitado","status"]}
 };
 var NUMCOLS=["valor","pago","reajuste","rtbi","cartorio","total","amort","saldo"];
 function recToRow(id,e){ var m=MAP[id],o={}; m.cols.forEach(function(c){ var v=e[c];
@@ -49,6 +49,10 @@ window.VZSUPA={
   saveCfg:function(id,c){ if(!UID)return Promise.resolve();
     return SB.from("fin_config").upsert({user_id:UID,modulo:id,total:c.total||0,forma:c.forma||"parcelado",nparc:c.nParc||0,tipo:c.tipo||"fixa",taxa:c.taxa||0,meses:c.meses||0,data:c.data||""},{onConflict:"user_id,modulo"}).then(function(){});
   },
+  addAmort:function(rec){ return SB.from("fin_amortizacoes").insert({data:rec.data||null,valor:rec.valor||0,modo:rec.modo||null,parcela_no:rec.parcela_no||null,saldo_apos:(rec.saldo_apos==null?null:rec.saldo_apos)}).select("id").single().then(function(r){ if(r.data)rec._id=r.data.id; }); },
+  clearAmort:function(){ return SB.from("fin_amortizacoes").delete().not("id","is",null); },
+  saveModule:function(id,rows){ return this.replaceModule(id,rows); },
+  wipeAll:function(){ var ts=["fin_entrada","fin_doc","fin_obra","fin_financiamento","fin_amortizacoes","fin_config"]; return Promise.all(ts.map(function(t){ return SB.from(t).delete().not("id","is",null); })); },
   reset:function(email){ return SB.auth.resetPasswordForEmail(email,{redirectTo:location.href.split("#")[0]}); },
   changePass:function(np){ return SB.auth.updateUser({password:np}); }
 };
@@ -60,13 +64,15 @@ function loadAll(){
     SB.from("fin_entrada").select("*").order("ordem"),
     SB.from("fin_doc").select("*").order("ordem"),
     SB.from("fin_obra").select("*").order("ordem"),
-    SB.from("fin_financiamento").select("*").order("ordem")
+    SB.from("fin_financiamento").select("*").order("ordem"),
+    SB.from("fin_amortizacoes").select("*").order("created_at")
   ]).then(function(res){
     var perfil=res[0].data||{};
     DADOS.entrada=(res[2].data||[]).map(function(r){return rowToRec("entrada",r);});
     DADOS.doc    =(res[3].data||[]).map(function(r){return rowToRec("doc",r);});
     DADOS.juros  =(res[4].data||[]).map(function(r){return rowToRec("obra",r);});
     DADOS.fin    =(res[5].data||[]).map(function(r){return rowToRec("financiamento",r);});
+    DADOS.amortizacoes=(res[6].data||[]).map(function(r){return {_id:r.id,data:r.data,valor:Number(r.valor)||0,modo:r.modo,parcela_no:r.parcela_no,saldo_apos:(r.saldo_apos==null?null:Number(r.saldo_apos))};});
     DADOS._cfgMod={};
     (res[1].data||[]).forEach(function(cf){ DADOS._cfgMod[cf.modulo]={total:Number(cf.total)||0,forma:cf.forma,nParc:cf.nparc,tipo:cf.tipo,taxa:Number(cf.taxa)||0,meses:cf.meses,data:cf.data}; });
     if(window.CRUD&&CRUD.recompute)CRUD.recompute();

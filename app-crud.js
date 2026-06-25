@@ -68,7 +68,7 @@ function sumPrev(arr,valK){ return arr.reduce(function(s,e){return s+(Number(e[v
 function sumPago(arr,valK){ return arr.filter(isPago).reduce(function(s,e){return s+(Number(e.pago!=null?e.pago:(e[valK]||e.valor||0)));},0); }
 function finOriginal(fin){ if(!fin||!fin.length) return 0; var f0=fin[0]; var v=(Number(f0.saldo)||0)+(Number(f0.amort)||0); if(v>0) return v; return fin.reduce(function(m,e){return Math.max(m,Number(e.saldo)||0);},0); }
 function recompute(){
-  var d=DADOS; if(!d.resumo)d.resumo={}; if(!d.finMeta)d.finMeta={};
+  var d=DADOS; if(!d.resumo)d.resumo={}; if(!d.finMeta)d.finMeta={}; if(!d.amortizacoes)d.amortizacoes=[];
   // entrada
   var cE=cfg("entrada"); var ePrev=cE.total>0?cE.total:sumPrev(d.entrada,"valor"); var ePago=sumPago(d.entrada,"valor");
   d.resumo.entradaPrev=r2(ePrev); d.resumo.entradaPago=r2(ePago); d.resumo.entradaPct=ePrev?r2(ePago/ePrev*1):0; d.resumo.entradaPct=ePrev?ePago/ePrev:0;
@@ -82,15 +82,16 @@ function recompute(){
   var cF=cfg("financiamento"); var saldoIni=cF.total>0?cF.total:finOriginal(d.fin);
   var pagos=d.fin.filter(isPago); var amortPaid=pagos.reduce(function(s,e){return s+(e.amort||0);},0);
   var finTotalPago=pagos.reduce(function(s,e){return s+(e.pago!=null?Number(e.pago):(e.valor||0));},0);
+  var amortExtra=(d.amortizacoes||[]).reduce(function(s,a){return s+(Number(a.valor)||0);},0);
   d.finMeta.saldoInicial=r2(saldoIni);
   if(cF.taxa>0) d.finMeta.jurosMensal=cF.taxa/100;
-  d.finMeta.totalPago=r2(finTotalPago);
-  d.finMeta.saldoAtual=r2(Math.max(0,saldoIni-amortPaid));
+  d.finMeta.totalPago=r2(finTotalPago+amortExtra); d.finMeta.amortExtra=r2(amortExtra);
+  d.finMeta.saldoAtual=r2(Math.max(0,saldoIni-amortPaid-amortExtra));
   d.finMeta.parcelasPagas=pagos.length;
   d.finMeta.parcelasRestantes=Math.max(0,d.fin.length-pagos.length);
-  d.finMeta.pctQuitado=saldoIni?amortPaid/saldoIni:0;
+  d.finMeta.pctQuitado=saldoIni?(amortPaid+amortExtra)/saldoIni:0;
   // totais
-  var invest=ePago+dPago+oPago+finTotalPago;
+  var invest=ePago+dPago+oPago+finTotalPago+amortExtra;
   var custo=ePrev+dPrev+oPrev+saldoIni;
   d.resumo.totalInvestido=r2(invest); d.resumo.custoTotal=r2(custo); d.resumo.faltaPagar=r2(custo-invest); d.resumo.finSaldo=d.finMeta.saldoAtual;
 }
@@ -192,9 +193,10 @@ function barHTML(id,mode){
   var csvb=SCHEMAS[id]?'<button class="ab" onclick="CRUD.exportCSV(\''+id+'\')">Exportar CSV</button>':'';
   var impb=SCHEMAS[id]?'<button class="ab" onclick="CRUD.importCSV(\''+id+'\')" title="Importar parcelas de uma planilha CSV">Importar CSV</button>':'';
   var amb=(id==="financiamento")?'<button class="ab" onclick="CRUD.amortizar()" title="Registrar amortizacao antecipada">Amortizar</button>':'';
+  var hsb=(id==="financiamento")?'<button class="ab" onclick="CRUD.amortHist()" title="Historico de amortizacoes">Hist\u00f3rico</button>':'';
   if(NO_CRUD[id])return '<div class="abar"><button class="ab on" onclick="window.navigate(\''+id+'\')">Painel</button>'+rep+'</div>';
   return '<div class="abar"><button class="ab '+(mode==="dash"?"on":"")+'" onclick="window.navigate(\''+id+'\')">Painel</button>'+
-    '<button class="ab '+(mode==="manage"?"on":"")+'" onclick="CRUD.manage(\''+id+'\')">Gerenciar dados</button>'+amb+impb+csvb+rep+'</div>';
+    '<button class="ab '+(mode==="manage"?"on":"")+'" onclick="CRUD.manage(\''+id+'\')">Gerenciar dados</button>'+amb+hsb+impb+csvb+rep+'</div>';
 }
 var _nav=window.navigate;
 window.navigate=function(id){ _nav(id); if(id&&id!=="home"){var v=document.getElementById("view");if(v)v.insertAdjacentHTML("afterbegin",barHTML(id,"dash"));} };
@@ -240,10 +242,11 @@ function cfgCardHTML(id){
       '<div class="cfgf"><label>1ª parcela</label><input id="cf_data" type="month" value="'+(String(c.data||"").slice(0,7))+'"></div></div>';
   }
   var pct=(s.pct*100).toFixed(1).replace(".",",");
+  var zbtn=(typeof SESSION!=="undefined"&&SESSION&&SESSION.isAdmin)?'<button class="btn-save2" style="background:#FEE4E2;color:#B42318;border-color:#FDA29B" onclick="CRUD.zerarConta()" title="Apaga tudo e recomeca do zero">🗑 Zerar minha conta</button>':'';
   return '<div class="cfgcard"><h3>⚙ Configuração da etapa</h3>'+
     '<div class="cap">Defina o valor total e a forma de pagamento. Use <b>Gerar parcelas</b> para criar o cronograma automaticamente, ou inclua manualmente em <b>＋ Novo</b> com base no seu contrato. Ao marcar uma parcela como paga, ela abate do total.</div>'+
     inner+
-    '<div class="cfgbtns"><button class="btn-gen" onclick="CRUD.gerar(\''+id+'\')">⚙ Gerar parcelas</button><button class="btn-save2" onclick="CRUD.saveCfg(\''+id+'\')">Salvar configuração</button></div>'+
+    '<div class="cfgbtns"><button class="btn-gen" onclick="CRUD.gerar(\''+id+'\')">⚙ Gerar parcelas</button><button class="btn-save2" onclick="CRUD.saveCfg(\''+id+'\')">Salvar configuração</button>'+zbtn+'</div>'+
     '<div class="cfgsum"><span>Total: <b>'+BRL(s.prev)+'</b></span><span class="g">Já pago: <b>'+BRL(s.pago)+'</b></span><span class="r">Falta: <b>'+BRL((s.prev||0)-(s.pago||0))+'</b></span><span>Concluído: <b>'+pct+'%</b></span></div></div>';
 }
 function readCfg(id){
@@ -285,12 +288,20 @@ function renderBody(id){
 }
 function filter(id){FILTER[id].q=document.getElementById("crudBusca").value||"";renderBody(id);}
 function setPend(id,on){FILTER[id].pend=!!on;renderBody(id);}
+var _saveTimers={};
+function saveModuleSoon(id){
+  if(!(window.VZSUPA&&window.VZSUPA.saveModule))return;
+  if(_saveTimers[id])clearTimeout(_saveTimers[id]);
+  _saveTimers[id]=setTimeout(function(){ _saveTimers[id]=null;
+    try{ window.VZSUPA.saveModule(id,rows(id)).then(function(){toast("Salvo na nuvem.","ok");}).catch(function(){toast("Falha ao salvar na nuvem.","danger");}); }catch(e){}
+  },600);
+}
 function togglePago(id,i,checked){
   var sc=SCHEMAS[id],e=rows(id)[i]; e.quitado=!!checked; e.status=checked?"PAGO":"A VENCER";
   if(checked&&sc.pagoFill&&(e[sc.pagoFill]==null||e[sc.pagoFill]==="")) e[sc.pagoFill]=e.valor;
   if(!checked&&sc.pagoFill) e[sc.pagoFill]=null;
   if(id==="entrada"||id==="financiamento")e.reajuste=correcaoEntrada(e);
-  recompute(); persist(id,"update",e,i); manage(id);
+  recompute(); saveModuleSoon(id); manage(id);
 }
 
 /* ---------- formulário ---------- */
@@ -323,10 +334,10 @@ function save(id,idx){
   if(rec.quitado&&sc.pagoFill&&rec[sc.pagoFill]==null)rec[sc.pagoFill]=rec.valor;
   if(id==="entrada"||id==="financiamento")rec.reajuste=correcaoEntrada(rec);
   if(idx==null)rows(id).push(rec);else rows(id)[idx]=rec;
-  recompute(); persist(id,idx==null?"create":"update",rec,idx==null?rows(id).length-1:idx);
+  recompute(); saveModuleSoon(id);
   closeForm(); manage(id);
 }
-function del(id,idx){ if(!confirm("Excluir esta parcela?"))return; var e=rows(id)[idx]; rows(id).splice(idx,1); recompute(); persist(id,"delete",e,idx); manage(id); }
+function del(id,idx){ if(!confirm("Excluir esta parcela?"))return; var e=rows(id)[idx]; rows(id).splice(idx,1); recompute(); saveModuleSoon(id); manage(id); }
 
 /* ---------- relatório (com resumo) ---------- */
 function csvCell(id,f,e){
@@ -437,6 +448,9 @@ function amortizarAplica(){
   if(fromIdx<0)fromIdx=Math.max(0,Math.min(parcNo-1,arr.length-1));
   var i=finTaxa(), sist=(cfg("financiamento").tipo||"SAC"), antes=arr.length;
   var novo=recalcFin(arr,i,sist,aporte,fromIdx,modo);
+  var amRec={data:new Date().toISOString().slice(0,10),valor:aporte,modo:modo,parcela_no:parcNo,saldo_apos:(novo[fromIdx]?novo[fromIdx].saldo:null)};
+  DADOS.amortizacoes=DADOS.amortizacoes||[]; DADOS.amortizacoes.push(amRec);
+  if(window.VZSUPA&&window.VZSUPA.addAmort)window.VZSUPA.addAmort(amRec);
   DADOS.fin=novo; recompute();
   if(window.VZSUPA&&window.VZSUPA.replaceModule)window.VZSUPA.replaceModule("financiamento",novo);
   closeForm();
@@ -513,10 +527,32 @@ function processImport(id,text){
 /* ---------- recompute inicial (reflete dados ja carregados) ---------- */
 try{ recompute(); }catch(e){}
 
+function amortHist(){
+  var list=DADOS.amortizacoes||[];
+  var body=list.length?list.map(function(a){return '<tr><td style="padding:6px">'+dBR(a.data)+'</td><td style="padding:6px">'+BRL(a.valor)+'</td><td style="padding:6px">'+(a.modo==="parcela"?"Reduzir parcela":"Reduzir prazo")+'</td><td style="padding:6px">'+(a.parcela_no||"\u2014")+'</td><td style="padding:6px">'+(a.saldo_apos!=null?BRL(a.saldo_apos):"\u2014")+'</td></tr>';}).join(""):'<tr><td colspan="5" style="text-align:center;color:#98A2B3;padding:14px">Nenhuma amortiza\u00e7\u00e3o registrada ainda.</td></tr>';
+  var total=list.reduce(function(s,a){return s+(Number(a.valor)||0);},0);
+  var ovl=document.createElement("div"); ovl.className="ovl"; ovl.id="crudOvl";
+  ovl.innerHTML='<div class="modal"><h3>Hist\u00f3rico de amortiza\u00e7\u00f5es</h3><div class="body">'+
+    '<table style="width:100%;border-collapse:collapse;font-size:.86rem"><thead><tr><th style="text-align:left;padding:6px;border-bottom:1px solid #E4E8EF">Data</th><th style="text-align:left;padding:6px;border-bottom:1px solid #E4E8EF">Valor</th><th style="text-align:left;padding:6px;border-bottom:1px solid #E4E8EF">Tipo</th><th style="text-align:left;padding:6px;border-bottom:1px solid #E4E8EF">Parcela n\u00ba</th><th style="text-align:left;padding:6px;border-bottom:1px solid #E4E8EF">Saldo ap\u00f3s</th></tr></thead><tbody>'+body+'</tbody></table>'+
+    '<div style="margin-top:12px;font-weight:700">Total amortizado: '+BRL(total)+'</div>'+
+    '</div><div class="foot"><button class="btn-s" onclick="CRUD.close()">Fechar</button></div></div>';
+  ovl.addEventListener("click",function(ev){if(ev.target===ovl)closeForm();});
+  document.body.appendChild(ovl);
+}
+function zerarConta(){
+  if(!(typeof SESSION!=="undefined"&&SESSION&&SESSION.isAdmin)){ toast("Apenas administradores.","warn"); return; }
+  if(!confirm("ZERAR TODA a sua conta?\n\nIsto apaga TODOS os dados financeiros (entrada, documenta\u00e7\u00e3o, obra, financiamento, amortiza\u00e7\u00f5es) e as configura\u00e7\u00f5es desta conta, para come\u00e7ar do zero.\n\nEsta a\u00e7\u00e3o N\u00c3O pode ser desfeita."))return;
+  if(!confirm("Confirma novamente? Tudo ser\u00e1 apagado e o sistema ficar\u00e1 zerado."))return;
+  if(window.VZSUPA&&window.VZSUPA.wipeAll){
+    window.VZSUPA.wipeAll().then(function(){ alert("Conta zerada. O sistema vai recarregar do zero."); location.reload(); }).catch(function(){ toast("Falha ao zerar na nuvem.","danger"); });
+  } else {
+    DADOS.entrada=[];DADOS.doc=[];DADOS.juros=[];DADOS.fin=[];DADOS.amortizacoes=[];DADOS._cfgMod={};recompute();location.reload();
+  }
+}
 /* ---------- API publica ---------- */
 function liveCorrecao(){ var pp=document.getElementById("fld_pago"),vv=document.getElementById("fld_valor"),rr=document.getElementById("fld_reajuste"); if(!pp||!vv||!rr)return; var pv=moneyParse(pp.value),vl=moneyParse(vv.value); rr.value=(pv==null||vl==null)?"—":("R$ "+moneyFmt(r2(pv-vl))); }
 window.CRUD={manage:manage,filter:filter,setPend:setPend,togglePago:togglePago,fmtMoney:fmtMoney,liveCorrecao:liveCorrecao,
   add:function(id){openForm(id,null);},edit:function(id,i){openForm(id,i);},save:save,del:del,close:closeForm,
-  report:report,exportCSV:exportCSV,importCSV:importCSV,amortizar:amortizar,amortizarAplica:amortizarAplica,gerar:gerar,saveCfg:saveCfg,cfgForma:cfgForma,recompute:recompute,_setApi:function(u){API_URL=u;}};
+  report:report,exportCSV:exportCSV,importCSV:importCSV,amortizar:amortizar,amortizarAplica:amortizarAplica,amortHist:amortHist,zerarConta:zerarConta,gerar:gerar,saveCfg:saveCfg,cfgForma:cfgForma,recompute:recompute,_setApi:function(u){API_URL=u;}};
 
 })();
