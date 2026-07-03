@@ -39,7 +39,7 @@ var SCHEMAS={
     {k:"parcela",l:"Parcela",t:"number"},{k:"rtbi",l:"RTBI",t:"money"},{k:"cartorio",l:"Cartório",t:"money"},
     {k:"total",l:"Total",t:"money"},{k:"quitado",l:"Pago?",t:"check"},{k:"status",l:"Status",t:"status"}
   ]},
-  obra:{label:"Parcela de juros de obra",rep:"Juros de Obra",hasCfg:false,kind:"etapa",fields:[
+  obra:{label:"Parcela de juros de obra",rep:"Juros de Obra",hasCfg:true,kind:"obra",fields:[
     {k:"parcela",l:"Parcela",t:"number"},{k:"venc",l:"Vencimento",t:"date"},{k:"valor",l:"Valor",t:"money"},
     {k:"evolucao",l:"Evolução da obra",t:"text"},{k:"quitado",l:"Pago?",t:"check"},{k:"status",l:"Status",t:"status"}
   ]},
@@ -58,6 +58,8 @@ function cfg(id){
   if(!DADOS._cfgMod[id]){
     DADOS._cfgMod[id]= id==="financiamento"
       ? {total:0,tipo:"SAC",meses:0,taxa:0,data:""}
+      : id==="obra"
+      ? {total:0,taxa:0,meses:0,incc:0,data:""}
       : {total:0,forma:"parcelado",nParc:0,tipo:(id==="doc"?"fixa":"fixa"),taxa:0,data:""};
   }
   return DADOS._cfgMod[id];
@@ -107,6 +109,7 @@ function resumoEtapa(id){
 
 /* ---------- gerar parcelas a partir da configuração ---------- */
 function gerar(id){
+  if(document.getElementById("cf_total")) readCfg(id); // lê o formulário antes de gerar (corrige "gera errado/não gera")
   var c=cfg(id), out=[];
   if(id==="financiamento"){
     var V=c.total||0, i=(c.taxa||0)/100, n=parseInt(c.meses)||0, sist=c.tipo||"SAC";
@@ -123,6 +126,18 @@ function gerar(id){
     var pe=(!fixa&&ie>0)?Te*ie/(1-Math.pow(1+ie,-ne)):Te/ne;
     for(var m=1;m<=ne;m++){ var jr=(!fixa&&ie>0)?r2(pe-Te/ne):0; out.push({parcela:String(m),venc:addMonths(c.data||"2024-01",m-1),valor:r2(pe),pago:null,reajuste:null,quitado:false,status:"A VENCER"}); }
     DADOS.entrada=out;
+  } else if(id==="obra"){
+    /* Juros de obra (padrão de mercado): incide sobre o saldo já liberado ao construtor,
+       que cresce com a evolução da obra; + correção monetária (INCC). Evolução linear por padrão. */
+    var Vo=c.total||0, io=(c.taxa||0)/100, no=parseInt(c.meses)||0, incc=(c.incc||0)/100;
+    if(Vo<=0||no<=0){toast("Preencha o valor financiado e os meses de obra.","warn");return;}
+    for(var q=1;q<=no;q++){
+      var pctLib=q/no;                 /* evolução da obra (linear) */
+      var liberado=Vo*pctLib;          /* saldo devedor apurado no mês = liberado acumulado */
+      var val=liberado*io + liberado*incc; /* juros sobre o liberado + correção INCC */
+      out.push({parcela:q,venc:addMonths(c.data||"2027-01",q-1),valor:r2(val),evolucao:Math.round(pctLib*100)+"%",total:r2(val),quitado:false,status:"A VENCER"});
+    }
+    DADOS.juros=out;
   }
   recompute();
   if(window.VZSUPA) window.VZSUPA.replaceModule(id, rows(id));
@@ -190,8 +205,10 @@ function toast(msg,kind){var t=document.createElement("div");t.className="toast 
 /* ---------- barra de ações ---------- */
 function barHTML(id,mode){
   var rep='<button class="ab ghost" onclick="CRUD.report(\''+id+'\')">Relatório PDF</button>';
-  var csvb=SCHEMAS[id]?'<button class="ab" onclick="CRUD.exportCSV(\''+id+'\')">Exportar CSV</button>':'';
-  var impb=SCHEMAS[id]?'<button class="ab" onclick="CRUD.importCSV(\''+id+'\')" title="Importar parcelas de uma planilha CSV">Importar CSV</button>':'';
+  var csvb=SCHEMAS[id]?'<button class="ab" onclick="CRUD.exportXLS(\''+id+'\')" title="Baixar em Excel">Excel</button>'+
+    '<button class="ab" onclick="CRUD.exportDOC(\''+id+'\')" title="Baixar em Word">Word</button>'+
+    '<button class="ab" onclick="CRUD.exportCSV(\''+id+'\')" title="Baixar em CSV">CSV</button>':'';
+  var impb=SCHEMAS[id]?'<button class="ab" onclick="CRUD.importArquivo(\''+id+'\')" title="Importar parcelas de um Excel ou CSV (mapeia pelas colunas do cabeçalho)">Importar</button>':'';
   var amb=(id==="financiamento")?'<button class="ab" onclick="CRUD.amortizar()" title="Registrar amortizacao antecipada">Amortizar</button>':'';
   var hsb=(id==="financiamento")?'<button class="ab" onclick="CRUD.amortHist()" title="Historico de amortizacoes">Hist\u00f3rico</button>':'';
   if(NO_CRUD[id])return '<div class="abar"><button class="ab on" onclick="window.navigate(\''+id+'\')">Painel</button>'+rep+'</div>';
@@ -231,6 +248,13 @@ function cfgCardHTML(id){
       '<div class="cfgf"><label>Nº de meses</label><input id="cf_meses" type="number" value="'+(c.meses||"")+'"></div>'+
       '<div class="cfgf"><label>Juros (% a.m.)</label><input id="cf_taxa" type="number" step="0.01" value="'+(c.taxa||"")+'"></div>'+
       '<div class="cfgf"><label>1ª parcela</label><input id="cf_data" type="month" value="'+(String(c.data||"").slice(0,7))+'"></div></div>';
+  } else if(id==="obra"){
+    inner='<div class="cfgrow">'+
+      '<div class="cfgf"><label>Valor financiado (R$)</label><input id="cf_total" value="'+(c.total||"")+'"></div>'+
+      '<div class="cfgf"><label>Juros de obra (% a.m.)</label><input id="cf_taxa" type="number" step="0.01" value="'+(c.taxa||"")+'"></div>'+
+      '<div class="cfgf"><label>Meses de obra</label><input id="cf_meses" type="number" value="'+(c.meses||"")+'"></div>'+
+      '<div class="cfgf"><label>INCC (% a.m.)</label><input id="cf_incc" type="number" step="0.01" value="'+(c.incc||"")+'"></div>'+
+      '<div class="cfgf"><label>1ª parcela</label><input id="cf_data" type="month" value="'+(String(c.data||"").slice(0,7))+'"></div></div>';
   } else {
     var jurosShow=(id==="entrada");
     inner='<div class="cfgrow">'+
@@ -253,8 +277,9 @@ function readCfg(id){
   var c=cfg(id), g=function(x){var el=document.getElementById(x);return el?el.value:"";};
   c.total=moneyParse(g("cf_total"))||0;
   c.data=g("cf_data")?g("cf_data")+"-08":"";
-  if(id==="financiamento"){ c.tipo=g("cf_tipo")||"SAC"; c.meses=parseInt(g("cf_meses"))||0; c.taxa=parseFloat(g("cf_taxa"))||0; }
-  else { c.forma=g("cf_forma")||"parcelado"; c.nParc=parseInt(g("cf_nparc"))||0; if(id==="entrada"){c.tipo=g("cf_tipo")||"fixa";c.taxa=parseFloat(g("cf_taxa"))||0;} else c.tipo="fixa"; }
+  if(id==="financiamento"){ c.tipo=g("cf_tipo")||"SAC"; c.meses=parseInt(g("cf_meses"))||0; c.taxa=moneyParse(g("cf_taxa"))||0; }
+  else if(id==="obra"){ c.taxa=moneyParse(g("cf_taxa"))||0; c.meses=parseInt(g("cf_meses"))||0; c.incc=moneyParse(g("cf_incc"))||0; }
+  else { c.forma=g("cf_forma")||"parcelado"; c.nParc=parseInt(g("cf_nparc"))||0; if(id==="entrada"){c.tipo=g("cf_tipo")||"fixa";c.taxa=moneyParse(g("cf_taxa"))||0;} else c.tipo="fixa"; }
   return c;
 }
 function saveCfg(id){ readCfg(id); recompute(); if(window.VZSUPA) window.VZSUPA.saveCfg(id,cfg(id)); toast("Configuração salva.","ok"); manage(id); }
@@ -369,7 +394,8 @@ function exportCSV(id){
 }
 var BOM=String.fromCharCode(65279), CRLF=String.fromCharCode(13,10), chr34=String.fromCharCode(34);
 function cellReport(id,f,e){ if(f.t==="status")return isPago(e)?"PAGO":"A VENCER"; if(f.t==="check")return isPago(e)?"Pago":"A vencer"; if(isMoney(f))return BRL(e[f.k]); if(f.t==="date")return dBR(e[f.k]); return e[f.k]==null||e[f.k]===""?"—":e[f.k]; }
-function report(id){
+/* Monta os dados do relatório (reusado por PDF/Excel/Word) */
+function reportModel(id){
   recompute();
   var sc=SCHEMAS[id], R, sumHTML="";
   if(id==="visao"){ R={rep:"Visão Geral do Imóvel",head:["Indicador","Valor"],body:[["Imóvel",DADOS._meta.imovel],["Já investido",BRL(DADOS.resumo.totalInvestido)],["Custo total",BRL(DADOS.resumo.custoTotal)],["Falta pagar",BRL(DADOS.resumo.faltaPagar)],["Concluído",((DADOS.resumo.custoTotal?DADOS.resumo.totalInvestido/DADOS.resumo.custoTotal:0)*100).toFixed(1).replace(".",",")+"%"]]}; }
@@ -381,6 +407,28 @@ function report(id){
       '<span style="color:#B7791F">Falta: <b>'+BRL((rs.prev||0)-(rs.pago||0))+'</b></span><span>Concluído: <b>'+pct+'%</b></span></div>';
     R={rep:sc.rep,head:["#"].concat(sc.fields.map(function(f){return f.l;})),body:rows(id).map(function(e,i){return [i+1].concat(sc.fields.map(function(f){return cellReport(id,f,e);}));})};
   }
+  return {R:R,sumHTML:sumHTML,sc:sc};
+}
+/* Exporta Excel (.xls) ou Word (.doc) via blob HTML nativo — sem biblioteca externa */
+function exportOffice(id,fmt){
+  var M=reportModel(id), R=M.R;
+  var th=R.head.map(function(h){return '<th style="background:#2563EB;color:#fff;border:1px solid #999;padding:5px 8px;text-align:left">'+esc(h)+'</th>';}).join("");
+  var tb=R.body.map(function(row){return '<tr>'+row.map(function(c){return '<td style="border:1px solid #ccc;padding:4px 8px">'+esc(c==null?"":c)+'</td>';}).join("")+'</tr>';}).join("");
+  var titulo='Gerenciador de Financiamento — '+R.rep+' · '+(DADOS._meta&&DADOS._meta.imovel||"");
+  var doc='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body>'+
+    '<h2 style="font-family:Arial">'+esc(titulo)+'</h2>'+M.sumHTML+
+    '<table border="1" style="border-collapse:collapse;font-family:Arial;font-size:12px"><thead><tr>'+th+'</tr></thead><tbody>'+tb+'</tbody></table>'+
+    '<p style="font-family:Arial;font-size:10px;color:#888">Gerado por Gerenciador de Financiamento · Vizio Finance — '+new Date().toLocaleDateString("pt-BR")+'</p></body></html>';
+  var isXls=fmt==="xls";
+  var blob=new Blob(["﻿"+doc],{type:isXls?"application/vnd.ms-excel":"application/msword"});
+  var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=(R.rep||id)+(isXls?".xls":".doc"); a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+  toast((isXls?"Excel":"Word")+" exportado ("+(R.body.length)+" registro(s)).","ok");
+}
+function exportXLS(id){ exportOffice(id,"xls"); }
+function exportDOC(id){ exportOffice(id,"doc"); }
+function report(id){
+  var M=reportModel(id), R=M.R, sumHTML=M.sumHTML, sc=M.sc;
   var head=R.head.map(function(h){return "<th style=\"text-align:left;padding:6px 8px;border-bottom:2px solid #1C64F0\">"+h+"</th>";}).join("");
   var body=R.body.map(function(row){return "<tr>"+row.map(function(c){return "<td style=\"padding:5px 8px;border-bottom:1px solid #e5e5e5\">"+(c==null?"—":c)+"</td>";}).join("")+"</tr>";}).join("");
   var area=document.getElementById("reportArea")||document.createElement("div");area.id="reportArea";
@@ -486,6 +534,30 @@ function importCSV(id){
   };
   inp.click();
 }
+/* Importa CSV OU Excel (.xlsx/.xls) para preencher as parcelas. Excel é convertido
+   em CSV (SheetJS) e passa pelo mesmo mapeamento por cabeçalho. */
+function importArquivo(id){
+  var sc=SCHEMAS[id]; if(!sc){toast("Importação disponível nas etapas de pagamento.","warn");return;}
+  var inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,.txt,.xlsx,.xls,text/csv";
+  inp.onchange=function(){ var file=inp.files&&inp.files[0]; if(!file)return;
+    var nome=(file.name||"").toLowerCase();
+    if(/\.(xlsx|xls)$/.test(nome)){
+      if(typeof XLSX==="undefined"){toast("Leitor de Excel ainda carregando — tente de novo em instantes.","warn");return;}
+      var rb=new FileReader();
+      rb.onload=function(){ try{
+        var wb=XLSX.read(new Uint8Array(rb.result),{type:"array"});
+        var ws=wb.Sheets[wb.SheetNames[0]];
+        processImport(id, XLSX.utils.sheet_to_csv(ws));
+      }catch(err){ toast("Não consegui ler a planilha Excel. Confira se há um cabeçalho na 1ª linha.","danger"); } };
+      rb.readAsArrayBuffer(file);
+    } else {
+      var rd=new FileReader();
+      rd.onload=function(){ try{ processImport(id,String(rd.result||"")); }catch(err){ toast("Não consegui ler o arquivo. Use CSV ou Excel com cabeçalho.","danger"); } };
+      rd.readAsText(file,"utf-8");
+    }
+  };
+  inp.click();
+}
 function processImport(id,text){
   var sc=SCHEMAS[id];
   var grid=parseCSV(text).filter(function(r){return r.some(function(c){return String(c).trim()!=="";});});
@@ -553,6 +625,6 @@ function zerarConta(){
 function liveCorrecao(){ var pp=document.getElementById("fld_pago"),vv=document.getElementById("fld_valor"),rr=document.getElementById("fld_reajuste"); if(!pp||!vv||!rr)return; var pv=moneyParse(pp.value),vl=moneyParse(vv.value); rr.value=(pv==null||vl==null)?"—":("R$ "+moneyFmt(r2(pv-vl))); }
 window.CRUD={manage:manage,filter:filter,setPend:setPend,togglePago:togglePago,fmtMoney:fmtMoney,liveCorrecao:liveCorrecao,
   add:function(id){openForm(id,null);},edit:function(id,i){openForm(id,i);},save:save,del:del,close:closeForm,
-  report:report,exportCSV:exportCSV,importCSV:importCSV,amortizar:amortizar,amortizarAplica:amortizarAplica,amortHist:amortHist,zerarConta:zerarConta,gerar:gerar,saveCfg:saveCfg,cfgForma:cfgForma,recompute:recompute,_setApi:function(u){API_URL=u;}};
+  report:report,exportCSV:exportCSV,exportXLS:exportXLS,exportDOC:exportDOC,importCSV:importCSV,importArquivo:importArquivo,amortizar:amortizar,amortizarAplica:amortizarAplica,amortHist:amortHist,zerarConta:zerarConta,gerar:gerar,saveCfg:saveCfg,cfgForma:cfgForma,recompute:recompute,_setApi:function(u){API_URL=u;}};
 
 })();
