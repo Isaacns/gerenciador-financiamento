@@ -208,7 +208,7 @@ function barHTML(id,mode){
   var csvb=SCHEMAS[id]?'<button class="ab" onclick="CRUD.exportXLS(\''+id+'\')" title="Baixar em Excel">Excel</button>'+
     '<button class="ab" onclick="CRUD.exportDOC(\''+id+'\')" title="Baixar em Word">Word</button>'+
     '<button class="ab" onclick="CRUD.exportCSV(\''+id+'\')" title="Baixar em CSV">CSV</button>':'';
-  var impb=SCHEMAS[id]?'<button class="ab" onclick="CRUD.importArquivo(\''+id+'\')" title="Importar parcelas de um Excel ou CSV (mapeia pelas colunas do cabeçalho)">Importar</button>':'';
+  var impb=SCHEMAS[id]?'<button class="ab" onclick="CRUD.importArquivo(\''+id+'\')" title="Importar de PDF (Confissão/Extrato MRV), Excel ou CSV">Importar</button>':'';
   var amb=(id==="financiamento")?'<button class="ab" onclick="CRUD.amortizar()" title="Registrar amortizacao antecipada">Amortizar</button>':'';
   var hsb=(id==="financiamento")?'<button class="ab" onclick="CRUD.amortHist()" title="Historico de amortizacoes">Hist\u00f3rico</button>':'';
   if(NO_CRUD[id])return '<div class="abar"><button class="ab on" onclick="window.navigate(\''+id+'\')">Painel</button>'+rep+'</div>';
@@ -541,9 +541,10 @@ function importCSV(id){
    em CSV (SheetJS) e passa pelo mesmo mapeamento por cabeçalho. */
 function importArquivo(id){
   var sc=SCHEMAS[id]; if(!sc){toast("Importação disponível nas etapas de pagamento.","warn");return;}
-  var inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,.txt,.xlsx,.xls,text/csv";
+  var inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,.txt,.xlsx,.xls,.pdf,text/csv,application/pdf";
   inp.onchange=function(){ var file=inp.files&&inp.files[0]; if(!file)return;
     var nome=(file.name||"").toLowerCase();
+    if(/\.pdf$/.test(nome)){ importPDF(file); return; }
     if(/\.(xlsx|xls)$/.test(nome)){
       if(typeof XLSX==="undefined"){toast("Leitor de Excel ainda carregando — tente de novo em instantes.","warn");return;}
       var rb=new FileReader();
@@ -561,6 +562,101 @@ function importArquivo(id){
   };
   inp.click();
 }
+/* ===== IMPORT DE PDF (MRV — Confissão de Dívida + Extrato) =====
+   Extrai o texto do PDF no navegador (pdf.js) e lê pelo padrão fixo da MRV.
+   Confissão = cronograma PREVISTO; Extrato = pagamentos REALIZADOS (mescla). */
+function pdfDateISO(br){ var p=String(br||"").split("/"); return p.length===3?(p[2]+"-"+p[1]+"-"+p[0]):""; }
+function pdfNum(x){ if(x==null)return 0; x=String(x).replace(/[^\d.,-]/g,""); if(x.indexOf(",")>=0)x=x.replace(/\./g,"").replace(",","."); var n=parseFloat(x); return isNaN(n)?0:n; }
+function pdfExtractText(file){
+  return file.arrayBuffer().then(function(buf){
+    if(typeof pdfjsLib==="undefined") throw new Error("leitor de PDF não carregado");
+    try{ pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; }catch(e){}
+    return pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise.then(function(pdf){
+      var chain=Promise.resolve(), out=[];
+      for(var p=1;p<=pdf.numPages;p++){ (function(pn){ chain=chain.then(function(){ return pdf.getPage(pn).then(function(pg){ return pg.getTextContent().then(function(tc){
+        var byY={}; tc.items.forEach(function(it){ var y=Math.round(it.transform[5]); (byY[y]=byY[y]||[]).push({x:it.transform[4],s:it.str}); });
+        var ys=Object.keys(byY).map(Number).sort(function(a,b){return b-a;});
+        ys.forEach(function(y){ out.push(byY[y].sort(function(a,b){return a.x-b.x;}).map(function(i){return i.s;}).join(" ").replace(/\s+/g," ").trim()); });
+      });});});})(p); }
+      return chain.then(function(){ return out.join("\n"); });
+    });
+  });
+}
+function parseMRV(text){
+  var conf=/INSTRUMENTO DE CONFISS/i.test(text), ext=/Consulta de Extrato/i.test(text), rows=[], m;
+  if(conf){
+    var re=/\b1\s+([A-Z]{1,2})\s*-\s*[^\d]+?([\d\.]+,\d{2})\s+(\d{2}\/\d{2}\/\d{4})/g;
+    while((m=re.exec(text))){ rows.push({code:m[1],valor:pdfNum(m[2]),venc:pdfDateISO(m[3]),pago:0,reaj:0,paid:false}); }
+    return {tipo:"confissao",rows:rows};
+  }
+  if(ext){
+    var lines=text.split("\n");
+    var payRe=/Pago\s+(\d{2}\/\d{2}\/\d{4})\s+R\$\s*([\d\.]+,\d{2})\s+R\$\s*([\d\.]+,\d{2})\s+R\$\s*([\d\.]+,\d{2})\s+R\$\s*([\d\.]+,\d{2})\s+R\$\s*([\d\.]+,\d{2})\s+R\$\s*([\d\.]+,\d{2})/;
+    var codeRe=/\b([A-Z]{1,2})(\d{2,3})\b/;
+    for(var i=0;i<lines.length;i++){ var pm=payRe.exec(lines[i]); if(!pm)continue;
+      var cm=codeRe.exec(lines[i]); if(!cm){ for(var j=i-1;j>=Math.max(0,i-2);j--){ if(lines[j]){cm=codeRe.exec(lines[j]); if(cm)break;} } }
+      rows.push({code:cm?cm[1]:"??",venc:pdfDateISO(pm[1]),valor:pdfNum(pm[2]),reaj:pdfNum(pm[3]),pago:pdfNum(pm[7]),paid:true});
+    }
+    return {tipo:"extrato",rows:rows};
+  }
+  return {tipo:"desconhecido",rows:rows};
+}
+function mrvBuckets(parsed){
+  var b={entrada:[],doc:[],fin:[],outros:[]};
+  parsed.rows.forEach(function(r){
+    if(r.code==="RT"||r.code==="RI") b.doc.push(r);
+    else if(r.code==="P") b.fin.push(r);
+    else if(r.code==="E"||r.code==="M"||r.code==="DF") b.entrada.push(r);
+    else b.outros.push(r);
+  });
+  return b;
+}
+function applyMRV(parsed,b){
+  var isExt=parsed.tipo==="extrato";
+  if(b.entrada.length){
+    var ent=b.entrada.slice().sort(function(a,c){return String(a.venc).localeCompare(String(c.venc));});
+    if(isExt && DADOS.entrada && DADOS.entrada.length){
+      var byV={}; DADOS.entrada.forEach(function(e){ byV[e.venc]=e; });
+      ent.forEach(function(r){ var e=byV[r.venc]; if(e){ e.quitado=true; e.pago=r.pago; e.reajuste=r2((r.pago||0)-(r.valor||0)); e.status="PAGO"; }
+        else { DADOS.entrada.push({parcela:String(DADOS.entrada.length+1),venc:r.venc,valor:r.valor,pago:r.pago,reajuste:r2((r.pago||0)-(r.valor||0)),quitado:true,status:"PAGO"}); } });
+    } else {
+      DADOS.entrada=ent.map(function(r,i){ return {parcela:String(i+1),venc:r.venc,valor:r.valor,pago:r.paid?r.pago:null,reajuste:r.paid?r2((r.pago||0)-(r.valor||0)):null,quitado:!!r.paid,status:r.paid?"PAGO":"A VENCER"}; });
+    }
+  }
+  if(b.doc.length){
+    var doc=b.doc.slice().sort(function(a,c){return String(a.venc).localeCompare(String(c.venc));});
+    DADOS.doc=doc.map(function(r,i){ var itbi=(r.code==="RI"); return {parcela:i+1,rtbi:itbi?r.valor:0,cartorio:itbi?0:r.valor,total:r.valor,quitado:!!r.paid,status:r.paid?"PAGO":"A VENCER"}; });
+  }
+  if(b.fin.length){
+    var principal=b.fin.reduce(function(s,r){return s+(r.valor||0);},0);
+    var cf=cfg("financiamento"); cf.total=r2(principal); if(window.VZSUPA&&window.VZSUPA.saveCfg)window.VZSUPA.saveCfg("financiamento",cf);
+  }
+  recompute();
+  if(window.VZSUPA&&window.VZSUPA.replaceModule){ if(b.entrada.length)window.VZSUPA.replaceModule("entrada",DADOS.entrada); if(b.doc.length)window.VZSUPA.replaceModule("doc",DADOS.doc); }
+  toast("PDF importado: "+(b.entrada.length?"entrada ":"")+(b.doc.length?"documentação ":"")+(b.fin.length?"financiamento":""),"ok");
+  if(window.navigate)window.navigate("visao");
+}
+function previewMRV(parsed,b){
+  var ovl=document.createElement("div"); ovl.className="vzmodal"; ovl.style.cssText="position:fixed;inset:0;background:rgba(9,13,22,.62);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px";
+  if(parsed.tipo==="desconhecido"||!parsed.rows.length){
+    ovl.innerHTML='<div style="background:#fff;border-radius:16px;max-width:440px;padding:24px 26px;box-shadow:0 14px 36px rgba(14,23,38,.2)"><h3 style="margin-bottom:8px">PDF não reconhecido</h3><p style="color:#667085;font-size:.9rem;margin-bottom:14px">Este import lê os PDFs da MRV (Confissão de Dívida e Extrato). Para outros formatos, use Excel ou CSV.</p><div style="text-align:right"><button class="ab" onclick="var m=this.closest(\'.vzmodal\');if(m)m.remove()">Fechar</button></div></div>';
+    document.body.appendChild(ovl); return;
+  }
+  function grp(arr,lbl){ if(!arr.length)return ""; var tot=arr.reduce(function(s,r){return s+(r.paid?(r.pago||r.valor):r.valor);},0); return '<tr><td style="padding:6px 8px;border-bottom:1px solid #EEF1F6">'+lbl+'</td><td style="padding:6px 8px;border-bottom:1px solid #EEF1F6;text-align:right">'+arr.length+'</td><td style="padding:6px 8px;border-bottom:1px solid #EEF1F6;text-align:right">'+BRL(tot)+'</td></tr>'; }
+  var tipoLbl=parsed.tipo==="confissao"?"Confissão de Dívida — cronograma previsto":"Extrato MRV — pagamentos realizados";
+  var nota=parsed.tipo==="extrato"?"As parcelas serão marcadas como <b>pagas</b> e mescladas ao cronograma existente (sem perder as futuras).":"Cria o <b>cronograma previsto</b>. Depois importe o Extrato para marcar as pagas.";
+  ovl.innerHTML='<div style="background:#fff;border-radius:16px;max-width:540px;width:100%;padding:24px 26px;box-shadow:0 14px 36px rgba(14,23,38,.2);max-height:82vh;overflow:auto">'+
+    '<h3 style="font-family:var(--font-display,inherit);margin-bottom:2px">Importar do PDF</h3>'+
+    '<div style="color:#667085;font-size:.86rem;margin-bottom:14px">'+tipoLbl+' · '+parsed.rows.length+' linhas lidas</div>'+
+    '<table style="width:100%;font-size:.88rem;border-collapse:collapse;margin-bottom:12px"><thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #2563EB">Módulo</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #2563EB">Itens</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #2563EB">Total</th></tr></thead><tbody>'+
+    grp(b.entrada,"Entrada Parcelada (sinais + mensais)")+grp(b.doc,"Documentação (cartório + ITBI)")+grp(b.fin,"Financiamento (principal CEF)")+'</tbody></table>'+
+    '<div style="color:#667085;font-size:.82rem;margin-bottom:16px">'+nota+'</div>'+
+    '<div style="display:flex;gap:10px;justify-content:flex-end"><button class="ab" onclick="var m=this.closest(\'.vzmodal\');if(m)m.remove()">Cancelar</button><button class="ab on" id="mrvGo" style="background:#2563EB;color:#fff;border-color:#2563EB">Importar</button></div></div>';
+  ovl.addEventListener("click",function(e){if(e.target===ovl)ovl.remove();});
+  document.body.appendChild(ovl);
+  document.getElementById("mrvGo").onclick=function(){ ovl.remove(); applyMRV(parsed,b); };
+}
+function importPDF(file){ toast("Lendo o PDF…","ok"); pdfExtractText(file).then(function(text){ var parsed=parseMRV(text); previewMRV(parsed, mrvBuckets(parsed)); }).catch(function(err){ toast("Falha ao ler o PDF"+(err&&err.message?" ("+err.message+")":"")+".","danger"); }); }
 function processImport(id,text){
   var sc=SCHEMAS[id];
   var grid=parseCSV(text).filter(function(r){return r.some(function(c){return String(c).trim()!=="";});});
@@ -630,6 +726,6 @@ function zerarConta(){
 function liveCorrecao(){ var pp=document.getElementById("fld_pago"),vv=document.getElementById("fld_valor"),rr=document.getElementById("fld_reajuste"); if(!pp||!vv||!rr)return; var pv=moneyParse(pp.value),vl=moneyParse(vv.value); rr.value=(pv==null||vl==null)?"—":("R$ "+moneyFmt(r2(pv-vl))); }
 window.CRUD={manage:manage,filter:filter,setPend:setPend,togglePago:togglePago,fmtMoney:fmtMoney,liveCorrecao:liveCorrecao,
   add:function(id){openForm(id,null);},edit:function(id,i){openForm(id,i);},save:save,del:del,close:closeForm,
-  report:report,exportCSV:exportCSV,exportXLS:exportXLS,exportDOC:exportDOC,importCSV:importCSV,importArquivo:importArquivo,amortizar:amortizar,amortizarAplica:amortizarAplica,amortHist:amortHist,zerarConta:zerarConta,gerar:gerar,saveCfg:saveCfg,cfgForma:cfgForma,recompute:recompute,_setApi:function(u){API_URL=u;}};
+  report:report,exportCSV:exportCSV,exportXLS:exportXLS,exportDOC:exportDOC,importCSV:importCSV,importArquivo:importArquivo,importPDF:importPDF,amortizar:amortizar,amortizarAplica:amortizarAplica,amortHist:amortHist,zerarConta:zerarConta,gerar:gerar,saveCfg:saveCfg,cfgForma:cfgForma,recompute:recompute,_setApi:function(u){API_URL=u;}};
 
 })();
