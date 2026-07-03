@@ -212,8 +212,11 @@ function barHTML(id,mode){
   var amb=(id==="financiamento")?'<button class="ab" onclick="CRUD.amortizar()" title="Registrar amortizacao antecipada">Amortizar</button>':'';
   var hsb=(id==="financiamento")?'<button class="ab" onclick="CRUD.amortHist()" title="Historico de amortizacoes">Hist\u00f3rico</button>':'';
   if(NO_CRUD[id])return '<div class="abar"><button class="ab on" onclick="window.navigate(\''+id+'\')">Painel</button>'+rep+'</div>';
+  var isAdm=(typeof SESSION!=="undefined"&&SESSION&&SESSION.isAdmin);
+  /* Assinatura: "Gerenciar dados" só para o master */
+  var mgb=(id==="assinatura"&&!isAdm)?'':'<button class="ab '+(mode==="manage"?"on":"")+'" onclick="CRUD.manage(\''+id+'\')">Gerenciar dados</button>';
   return '<div class="abar"><button class="ab '+(mode==="dash"?"on":"")+'" onclick="window.navigate(\''+id+'\')">Painel</button>'+
-    '<button class="ab '+(mode==="manage"?"on":"")+'" onclick="CRUD.manage(\''+id+'\')">Gerenciar dados</button>'+amb+hsb+impb+csvb+rep+'</div>';
+    mgb+amb+hsb+impb+csvb+rep+'</div>';
 }
 var _nav=window.navigate;
 window.navigate=function(id){ _nav(id); if(id&&id!=="home"){var v=document.getElementById("view");if(v)v.insertAdjacentHTML("afterbegin",barHTML(id,"dash"));} };
@@ -243,14 +246,14 @@ function cfgCardHTML(id){
   var inner;
   if(id==="financiamento"){
     inner='<div class="cfgrow">'+
-      '<div class="cfgf"><label>Valor financiado (R$)</label><input id="cf_total" value="'+(c.total||"")+'"></div>'+
+      '<div class="cfgf"><label>Valor financiado (R$)</label><input id="cf_total" inputmode="decimal" value="'+(c.total?moneyFmt(c.total):"")+'"></div>'+
       '<div class="cfgf"><label>Tipo</label><select id="cf_tipo"><option value="SAC"'+(c.tipo==="SAC"?" selected":"")+'>SAC (decrescente)</option><option value="PRICE"'+(c.tipo==="PRICE"?" selected":"")+'>PRICE (fixa)</option></select></div>'+
       '<div class="cfgf"><label>Nº de meses</label><input id="cf_meses" type="number" value="'+(c.meses||"")+'"></div>'+
       '<div class="cfgf"><label>Juros (% a.m.)</label><input id="cf_taxa" type="number" step="0.01" value="'+(c.taxa||"")+'"></div>'+
       '<div class="cfgf"><label>1ª parcela</label><input id="cf_data" type="month" value="'+(String(c.data||"").slice(0,7))+'"></div></div>';
   } else if(id==="obra"){
     inner='<div class="cfgrow">'+
-      '<div class="cfgf"><label>Valor financiado (R$)</label><input id="cf_total" value="'+(c.total||"")+'"></div>'+
+      '<div class="cfgf"><label>Valor financiado (R$)</label><input id="cf_total" inputmode="decimal" value="'+(c.total?moneyFmt(c.total):"")+'"></div>'+
       '<div class="cfgf"><label>Juros de obra (% a.m.)</label><input id="cf_taxa" type="number" step="0.01" value="'+(c.taxa||"")+'"></div>'+
       '<div class="cfgf"><label>Meses de obra</label><input id="cf_meses" type="number" value="'+(c.meses||"")+'"></div>'+
       '<div class="cfgf"><label>INCC (% a.m.)</label><input id="cf_incc" type="number" step="0.01" value="'+(c.incc||"")+'"></div>'+
@@ -258,7 +261,7 @@ function cfgCardHTML(id){
   } else {
     var jurosShow=(id==="entrada");
     inner='<div class="cfgrow">'+
-      '<div class="cfgf"><label>Valor total (R$)</label><input id="cf_total" value="'+(c.total||"")+'"></div>'+
+      '<div class="cfgf"><label>Valor total (R$)</label><input id="cf_total" inputmode="decimal" value="'+(c.total?moneyFmt(c.total):"")+'"></div>'+
       '<div class="cfgf"><label>Forma</label><select id="cf_forma" onchange="CRUD.cfgForma(\''+id+'\')"><option value="avista"'+(c.forma==="avista"?" selected":"")+'>À vista</option><option value="parcelado"'+(c.forma!=="avista"?" selected":"")+'>Parcelado</option></select></div>'+
       '<div class="cfgf"><label>Nº de parcelas</label><input id="cf_nparc" type="number" value="'+(c.nParc||"")+'" '+(c.forma==="avista"?"disabled":"")+'></div>'+
       (jurosShow?'<div class="cfgf"><label>Tipo</label><select id="cf_tipo"><option value="fixa"'+(c.tipo!=="juros"?" selected":"")+'>Parcelas fixas</option><option value="juros"'+(c.tipo==="juros"?" selected":"")+'>Com juros</option></select></div>'+
@@ -615,6 +618,8 @@ function zerarConta(){
   if(!(typeof SESSION!=="undefined"&&SESSION&&SESSION.isAdmin)){ toast("Apenas administradores.","warn"); return; }
   if(!confirm("ZERAR TODA a sua conta?\n\nIsto apaga TODOS os dados financeiros (entrada, documenta\u00e7\u00e3o, obra, financiamento, amortiza\u00e7\u00f5es) e as configura\u00e7\u00f5es desta conta, para come\u00e7ar do zero.\n\nEsta a\u00e7\u00e3o N\u00c3O pode ser desfeita."))return;
   if(!confirm("Confirma novamente? Tudo ser\u00e1 apagado e o sistema ficar\u00e1 zerado."))return;
+  /* zera explicitamente o Valor Financiado (e demais configs) e salva */
+  try{ ["financiamento","entrada","doc","obra"].forEach(function(m){ var cc=cfg(m); cc.total=0; cc.meses=0; cc.taxa=0; cc.nParc=0; cc.incc=0; if(window.VZSUPA&&window.VZSUPA.saveCfg)window.VZSUPA.saveCfg(m,cc); }); }catch(e){}
   if(window.VZSUPA&&window.VZSUPA.wipeAll){
     window.VZSUPA.wipeAll().then(function(){ alert("Conta zerada. O sistema vai recarregar do zero."); location.reload(); }).catch(function(){ toast("Falha ao zerar na nuvem.","danger"); });
   } else {

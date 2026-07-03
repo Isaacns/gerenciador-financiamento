@@ -39,6 +39,10 @@ td.num,th.num,.kpi .val,.statlist .ct{font-family:var(--font);font-variant-numer
 /* Selo Vizio Finance (sub-marca) */
 .fin-badge{font-family:var(--font-display);font-weight:700;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--blue);padding:2px 7px;border-radius:5px;line-height:1.4;display:inline-block;vertical-align:middle}
 .fin-badge.ghost{background:transparent;color:var(--blue);border:1px solid var(--blue);padding:1px 6px}
+/* Logo VIZIO viva — pulsação/respiração (login, sidebar e home) */
+@keyframes vzpulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0 rgba(37,99,235,0))}50%{transform:scale(1.07);filter:drop-shadow(0 0 11px rgba(37,99,235,.55))}}
+.login-card .lg img.sym,.side .logo img.sym,.home-logo img.sym{animation:vzpulse 2.8s ease-in-out infinite;transform-origin:center;will-change:transform,filter}
+@media(prefers-reduced-motion:reduce){.login-card .lg img.sym,.side .logo img.sym,.home-logo img.sym{animation:none}}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer}
@@ -250,6 +254,19 @@ const PRODUTO   = CFG.produto   || 'Gerenciador de Financiamento';
 const INSTANCIA = CFG.instancia || 'Meu Apê 203 — Dom Pedro I';
 const PROP_LABEL= CFG.propLabel || 'Proprietária';
 const AUTH_URL  = CFG.authUrl   || '';
+/* ===== Controle de versão ===== */
+const APP_VERSION='1.1.0';
+const CHANGELOG=[
+  {v:'1.1.0',d:'03/07/2026',itens:['Identidade Vizio Finance (cor, tipografia, selo, logo animado)','Sistema multi-perfil (planta, pronto, em andamento, veículo, empréstimo)','Juros de obra com cálculo de mercado (saldo liberado + INCC)','Importar/Exportar em Excel, Word, PDF e CSV','Máscara de valor (R$) em todo o sistema','Ícones únicos por módulo','Correção da geração de parcelas']},
+  {v:'1.0.0',d:'22/06/2026',itens:['Lançamento: dashboard, etapas, financiamento SAC/PRICE, simulador']}
+];
+function showChangelog(){
+  var ovl=document.createElement('div'); ovl.className='vzmodal'; ovl.style.cssText='position:fixed;inset:0;background:rgba(9,13,22,.62);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px';
+  var rows=CHANGELOG.map(function(c){return '<div style="margin-bottom:14px"><div style="font-weight:800;color:var(--blue);font-family:var(--font-display)">v'+c.v+' <span style="font-weight:500;color:var(--muted);font-size:.8rem">· '+c.d+'</span></div><ul style="margin:6px 0 0 18px;font-size:.86rem;color:var(--text);line-height:1.6">'+c.itens.map(function(i){return '<li>'+i+'</li>';}).join('')+'</ul></div>';}).join('');
+  ovl.innerHTML='<div style="background:var(--surface);border-radius:16px;max-width:480px;width:100%;padding:24px 26px;box-shadow:var(--shadow-lg);max-height:80vh;overflow:auto"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><h2 style="font-family:var(--font-display)">Novidades · Vizio Finance</h2><button onclick="var m=this.closest(\'.vzmodal\');if(m)m.remove()" style="border:0;background:none;font-size:1.3rem;cursor:pointer;color:var(--muted)">✕</button></div>'+rows+'</div>';
+  ovl.addEventListener('click',function(e){if(e.target===ovl)ovl.remove();});
+  document.body.appendChild(ovl);
+}
 const USERS = (typeof DADOS!=='undefined' && Array.isArray(DADOS._users) && DADOS._users.length) ? DADOS._users : [
   {user:'sarah',pass:'sarah',nome:'Sarah Nogueira',perfil:'proprietario'},
   {user:'admin',pass:'admin',nome:'Isaac Nogueira',perfil:'admin'}
@@ -260,7 +277,7 @@ function applyCfg(){
     var t=document.getElementById('lgTitle'); if(t) t.textContent=PRODUTO;
     var s=document.getElementById('lgSub');   if(s) s.textContent=INSTANCIA+' · acesso restrito';
     var p=document.getElementById('sideProp');if(p) p.textContent='🏠 '+INSTANCIA;
-    var f=document.getElementById('sideFoot');if(f) f.textContent=PRODUTO+' · v1.0';
+    var f=document.getElementById('sideFoot');if(f) f.innerHTML=PRODUTO+' · <a href="#" onclick="showChangelog();return false" title="Ver novidades" style="color:var(--sky);text-decoration:none;font-weight:600">v'+APP_VERSION+'</a>';
     var h=document.getElementById('lgHint');
     if(h){
       if(AUTH_URL){ h.innerHTML='Acesso restrito · entre com seu usuário e senha.'; }
@@ -331,7 +348,10 @@ const IC={
   doc:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/>',
   obra:'<path d="M3 21h18M5 21V10l5-3 5 3v11M9 21v-5h2v5"/><path d="M14 13h3v8"/>',
   financiamento:'<path d="M3 10l9-6 9 6M4 10v9M20 10v9M8 10v9M12 10v9M16 10v9M2 21h20"/>',
-  simulador:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2M14 11h2M8 15h2M14 15h2"/>'
+  simulador:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2M14 11h2M8 15h2M14 15h2"/>',
+  assinatura:'<path d="M12 2.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16l-5.3 2.6 1-5.8L3.5 8.7l5.9-.9z"/>',
+  clientes:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M17 3.13a4 4 0 0 1 0 7.75"/>',
+  configurador:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>'
 };
 function svg(name){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[name]||IC.home}</svg>`;}
 
@@ -368,6 +388,11 @@ const fmtBRL2=n=>'R$ '+(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,ma
 const fmtN=n=>Math.round(n||0).toLocaleString('pt-BR');
 const fmtPct=n=>(n*100).toFixed(1).replace('.',',')+'%';
 const dBR=s=>{if(!s||s==='—')return '—';const p=String(s).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s;};
+/* ===== Máscara de valor (R$) em todo o sistema ===== */
+function moneyNum(s){ if(s==null||s==='')return 0; s=String(s).replace(/[^\d.,-]/g,''); if(s.indexOf(',')>=0)s=s.replace(/\./g,'').replace(',','.'); const n=parseFloat(s); return isNaN(n)?0:n; }
+function moneyMaskLive(el){ const hadComma=el.value.indexOf(',')>=0; let v=el.value.replace(/[^\d,]/g,''); const parts=v.split(','); let intp=parts[0].replace(/^0+(?=\d)/,'').replace(/\B(?=(\d{3})+(?!\d))/g,'.'); if(intp==='')intp=(parts.length>1?'0':''); el.value = parts.length>1 ? intp+','+parts[1].slice(0,2) : intp+(hadComma?',':''); }
+function isMoneyField(t){ return t&&t.tagName==='INPUT'&&(t.getAttribute('inputmode')==='decimal'||t.hasAttribute('data-money')); }
+document.addEventListener('input',function(e){ if(isMoneyField(e.target)) moneyMaskLive(e.target); },true);
 function can(m){
   if(!m.adminOnly && CORE_MODS.indexOf(m.id)<0 && PERFIL_MODS.indexOf(m.id)<0) return false; /* módulo fora do perfil ativo */
   return m.adminOnly ? !!(SESSION&&SESSION.isAdmin) : m.roles.includes(SESSION.perfil);
@@ -728,11 +753,11 @@ function renderSim(v){
     <div class="card"><h2>Simulador de amortização antecipada</h2><div class="cap">Edite os campos em azul. O modelo: parcela fixa mensal + juros sobre o saldo devedor (aproximação do contrato).</div>
       <div class="simmode" style="display:flex;gap:18px;margin:8px 0 6px;font-size:.86rem;color:var(--text);align-items:center"><b style="font-weight:700;color:var(--muted)">Modo:</b> <label style="cursor:pointer;display:inline-flex;gap:5px;align-items:center"><input type="radio" name="simModo" value="prazo" checked onchange="runSim()"> Reduzir prazo</label> <label style="cursor:pointer;display:inline-flex;gap:5px;align-items:center"><input type="radio" name="simModo" value="parcela" onchange="runSim()"> Reduzir parcela</label></div>
       <div class="simgrid">
-        <div class="simf"><label>Saldo devedor (R$)</label><input id="sSaldo" type="number" value="${sm.saldo}" oninput="runSim()"></div>
+        <div class="simf"><label>Saldo devedor (R$)</label><input id="sSaldo" type="text" inputmode="decimal" value="${fmtBRL(sm.saldo).replace('R$ ','')}" oninput="runSim()"></div>
         <div class="simf"><label>Juros mensal (%)</label><input id="sJuros" type="number" step="0.01" value="${(sm.juros*100).toFixed(2)}" oninput="runSim()"></div>
-        <div class="simf"><label>Parcela base (R$)</label><input id="sParc" type="number" value="${sm.parcela}" oninput="runSim()"></div>
-        <div class="simf"><label>Aporte extra mensal (R$)</label><input id="sExtra" type="number" value="${sm.aporteExtra}" oninput="runSim()"></div>
-        <div class="simf"><label>Aporte único agora (R$)</label><input id="sUnico" type="number" value="${sm.aporteUnico}" oninput="runSim()"></div>
+        <div class="simf"><label>Parcela base (R$)</label><input id="sParc" type="text" inputmode="decimal" value="${fmtBRL(sm.parcela).replace('R$ ','')}" oninput="runSim()"></div>
+        <div class="simf"><label>Aporte extra mensal (R$)</label><input id="sExtra" type="text" inputmode="decimal" value="${fmtBRL(sm.aporteExtra).replace('R$ ','')}" oninput="runSim()"></div>
+        <div class="simf"><label>Aporte único agora (R$)</label><input id="sUnico" type="text" inputmode="decimal" value="${fmtBRL(sm.aporteUnico).replace('R$ ','')}" oninput="runSim()"></div>
       </div>
     </div>
     <div class="simres" id="simRes"></div>
@@ -740,11 +765,11 @@ function renderSim(v){
   runSim();
 }
 function runSim(){
-  const saldo=+document.getElementById('sSaldo').value||0;
+  const saldo=moneyNum(document.getElementById('sSaldo').value);
   const taxa=(+document.getElementById('sJuros').value||0)/100;
-  const parc=+document.getElementById('sParc').value||0;
-  const extra=+document.getElementById('sExtra').value||0;
-  const unico=+document.getElementById('sUnico').value||0;
+  const parc=moneyNum(document.getElementById('sParc').value);
+  const extra=moneyNum(document.getElementById('sExtra').value);
+  const unico=moneyNum(document.getElementById('sUnico').value);
   const me=document.querySelector('input[name="simModo"]:checked');
   const modo=me?me.value:'prazo';
   const _exf=document.getElementById('sExtra'); if(_exf){var _exc=_exf.closest('.simf'); if(_exc)_exc.style.display=(modo==='parcela')?'none':'';}
