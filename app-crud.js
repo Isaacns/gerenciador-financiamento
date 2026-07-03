@@ -219,7 +219,7 @@ function barHTML(id,mode){
     mgb+amb+hsb+impb+csvb+rep+'</div>';
 }
 var _nav=window.navigate;
-window.navigate=function(id){ _nav(id); if(id&&id!=="home"){var v=document.getElementById("view");if(v)v.insertAdjacentHTML("afterbegin",barHTML(id,"dash"));} };
+window.navigate=function(id){ _nav(id); if(id&&id!=="home"&&id!=="manual"){var v=document.getElementById("view");if(v)v.insertAdjacentHTML("afterbegin",barHTML(id,"dash"));} };
 
 /* ---------- células ---------- */
 function cellHTML(id,f,e,i){

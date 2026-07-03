@@ -256,8 +256,9 @@ const INSTANCIA = CFG.instancia || 'Meu Apê 203 — Dom Pedro I';
 const PROP_LABEL= CFG.propLabel || 'Proprietária';
 const AUTH_URL  = CFG.authUrl   || '';
 /* ===== Controle de versão ===== */
-const APP_VERSION='1.2.0';
+const APP_VERSION='1.2.1';
 const CHANGELOG=[
+  {v:'1.2.1',d:'03/07/2026',itens:['Manual de uso ilustrado integrado ao sistema (menu Ajuda › Manual)']},
   {v:'1.2.0',d:'03/07/2026',itens:['Importar PDF da MRV: Confissão de Dívida (cronograma previsto) e Extrato (pagamentos realizados)','Leitura no navegador com prévia e confirmação antes de gravar','Extrato mescla pagas sobre o cronograma e preenche Documentação e Financiamento']},
   {v:'1.1.0',d:'03/07/2026',itens:['Identidade Vizio Finance (cor, tipografia, selo, logo animado)','Sistema multi-perfil (planta, pronto, em andamento, veículo, empréstimo)','Juros de obra com cálculo de mercado (saldo liberado + INCC)','Importar/Exportar em Excel, Word, PDF e CSV','Máscara de valor (R$) em todo o sistema','Ícones únicos por módulo','Correção da geração de parcelas']},
   {v:'1.0.0',d:'22/06/2026',itens:['Lançamento: dashboard, etapas, financiamento SAC/PRICE, simulador']}
@@ -366,6 +367,7 @@ const MODS=[
   {id:'financiamento',nome:'Financiamento',sub:'SAC · 420 parcelas',grp:'Etapas de pagamento',roles:['admin','proprietario'],ready:true,desc:'Saldo devedor e amortização do banco.'},
   {id:'simulador',nome:'Simulador',sub:'Amortização antecipada',grp:'Ferramentas',roles:['admin','proprietario'],ready:true,desc:'Simule aportes e veja a economia de juros.'},
   {id:'assinatura',nome:'Assinatura',sub:'Plano e pagamento',grp:'Conta',roles:['admin','proprietario'],ready:true,desc:'Sua assinatura e pagamento.'},
+  {id:'manual',nome:'Manual',sub:'Guia de uso',grp:'Ajuda',roles:['admin','proprietario'],ready:true,desc:'Guia ilustrado de uso do sistema.'},
   {id:'clientes',nome:'Clientes',sub:'Contratantes',grp:'Administração',roles:['admin'],adminOnly:true,ready:true,desc:'Lista e estado das contas dos clientes (somente admins).'},
   {id:'configurador',nome:'Configurador',sub:'Nova instância',grp:'Administração',roles:['admin'],adminOnly:true,ready:true,desc:'Gere a configuração de um novo comprador (somente admins).'}
 ];
@@ -383,7 +385,7 @@ const PERFIS={
 };
 const PERFIL=(CFG.perfil&&PERFIS[CFG.perfil])?CFG.perfil:'imovel_planta';
 const PERFIL_MODS=PERFIS[PERFIL].mods;
-const CORE_MODS=['home','assinatura','clientes','configurador']; /* sempre disponíveis (independem do perfil) */
+const CORE_MODS=['home','assinatura','clientes','configurador','manual']; /* sempre disponíveis (independem do perfil) */
 (function applyPerfilLabels(){var lb=(PERFIS[PERFIL]||{}).labels||{};MODS.forEach(function(m){var o=lb[m.id];if(o){if(o.nome)m.nome=o.nome;if(o.sub)m.sub=o.sub;}});})();
 const fmtBRL=n=>'R$ '+(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtBRL2=n=>'R$ '+(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -436,7 +438,7 @@ function navigate(id){
   document.getElementById('crumb').childNodes[0].nodeValue=m.nome;
   document.getElementById('crumbSub').textContent=m.sub||'';
   const v=document.getElementById('view');
-  ({home:renderHome,visao:renderVisao,entrada:renderEntrada,doc:renderDoc,obra:renderObra,financiamento:renderFin,simulador:renderSim,configurador:renderConfigurador,clientes:renderClientes,assinatura:renderAssinatura}[id]||renderHome)(v);
+  ({home:renderHome,visao:renderVisao,entrada:renderEntrada,doc:renderDoc,obra:renderObra,financiamento:renderFin,simulador:renderSim,configurador:renderConfigurador,clientes:renderClientes,assinatura:renderAssinatura,manual:renderManual}[id]||renderHome)(v);
   window.scrollTo(0,0);
 }
 function sig(){return `<div class="sig"><div class="by"><b>Gerenciador de Financiamento</b> <span>by</span> <img class="sym" src="vizio-symbol-dark.png"> <img class="wm" src="vizio-wordmark-dark.png"> <span class="fin-badge ghost">Finance</span> · Sua planilha virou software.</div><span>Dados: ${DADOS._meta.fonte} · ${DADOS._meta.gerado}</span></div>`;}
@@ -532,6 +534,15 @@ function renderConfigurador(v){
     '<h2 style="margin:0 0 4px">Configurador de instância</h2>'+
     '<div class="cap" style="font-size:.82rem;color:#667085;margin-bottom:12px">Gere a configuração de um novo comprador. Área exclusiva de administradores.</div>'+
     '<iframe src="configurador.html" title="Configurador" style="width:100%;height:78vh;border:0;border-radius:12px;background:#0C0F18"></iframe>'+
+  '</div>';
+}
+function renderManual(v){
+  document.body.classList.remove('home');
+  v.innerHTML='<div class="card" style="padding:12px 14px">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">'+
+    '<div><h2 style="margin:0">Manual de uso</h2><div class="cap" style="margin:0;font-size:.82rem;color:#667085">Guia ilustrado do Gerenciador de Financiamento.</div></div>'+
+    '<a href="manual-vizio-finance.html" target="_blank" class="chip on" style="text-decoration:none">Abrir em nova aba ↗</a></div>'+
+    '<iframe src="manual-vizio-finance.html" title="Manual" style="width:100%;height:80vh;border:0;border-radius:12px;background:#fff"></iframe>'+
   '</div>';
 }
 function renderHome(v){

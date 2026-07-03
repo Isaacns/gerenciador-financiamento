@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual do Usuário · Gerenciador de Financiamento · Vizio Finance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Raleway:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#2563EB; --blue-h:#3B82F6; --blue-d:#1D4ED8; --sky:#60A5FA; --blue-soft:#EAF1FE;
+  --ink:#111827; --graphite:#111827; --graphite2:#1F2937; --graphite3:#374151;
+  --bg:#F3F5F9; --surface:#fff; --text:#111827; --muted:#6B7280; --muted2:#9CA3AF;
+  --border:#E4E8EF; --border2:#EEF1F6; --row:#F7F9FC;
+  --success:#16A34A; --success-bg:#E7F6ED; --warn:#D97706; --warn-bg:#FBF1DC;
+  --danger:#DC2626; --danger-bg:#FBEAEA;
+  --radius:14px; --font:'Inter','Segoe UI',system-ui,sans-serif; --font-display:'Raleway','Inter',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:920px;margin:0 auto;padding:0 22px}
+h1,h2,h3,h4{font-family:var(--font-display);letter-spacing:-.01em;line-height:1.25}
+a{color:var(--blue-d);text-decoration:none}
+/* HERO */
+.hero{background:radial-gradient(120% 120% at 78% 8%,#1F2937 0%,#0B0E16 62%);color:#fff;padding:54px 0 46px}
+.hero .badge{display:inline-flex;align-items:center;gap:9px;margin-bottom:16px}
+.hero .sym{width:44px;height:44px;animation:pulse 2.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0 rgba(37,99,235,0))}50%{transform:scale(1.07);filter:drop-shadow(0 0 12px rgba(37,99,235,.6))}}
+.hero .wm{font-family:var(--font-display);font-weight:700;font-size:1.15rem;letter-spacing:.32em}
+.hero .fin{font-family:var(--font-display);font-weight:700;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--blue);padding:3px 8px;border-radius:6px}
+.hero h1{font-size:2.15rem;font-weight:800;margin-bottom:8px}
+.hero p{color:#C2C9D6;font-size:1.02rem;max-width:640px}
+.hero .meta{margin-top:20px;font-size:.82rem;color:#8B94A7}
+/* TOC */
+.toc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 26px;margin:-30px auto 34px;max-width:920px;box-shadow:0 14px 36px rgba(14,23,38,.12);position:relative}
+.toc h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px}
+.toc ol{columns:2;column-gap:34px;list-style:none;counter-reset:t}
+.toc li{counter-increment:t;padding:5px 0;font-size:.92rem;break-inside:avoid}
+.toc li::before{content:counter(t);display:inline-flex;width:22px;height:22px;background:var(--blue-soft);color:var(--blue-d);border-radius:6px;font-size:.72rem;font-weight:700;align-items:center;justify-content:center;margin-right:9px}
+section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:30px 34px;margin-bottom:22px;box-shadow:0 1px 3px rgba(14,23,38,.05)}
+section>h2{font-size:1.5rem;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:12px}
+section>h2 .n{width:34px;height:34px;background:var(--blue);color:#fff;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:1rem;flex:none}
+section h3{font-size:1.12rem;margin:22px 0 8px;color:var(--graphite2)}
+section h4{font-size:.98rem;margin:16px 0 6px}
+p{margin:8px 0}
+ul,ol{margin:8px 0 8px 22px}
+li{margin:4px 0}
+.lead{color:var(--muted);font-size:1rem;margin-bottom:8px}
+/* steps */
+.steps{list-style:none;margin:14px 0;counter-reset:s;padding:0}
+.steps>li{counter-increment:s;position:relative;padding:12px 14px 12px 52px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--row)}
+.steps>li::before{content:counter(s);position:absolute;left:12px;top:12px;width:28px;height:28px;background:var(--blue);color:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem}
+.steps>li b{color:var(--graphite2)}
+/* callouts */
+.call{border-radius:10px;padding:13px 16px;margin:14px 0;font-size:.92rem;border:1px solid;display:flex;gap:11px}
+.call .ic{flex:none;font-size:1.1rem;line-height:1.4}
+.call.dica{background:var(--blue-soft);border-color:#C3D9FC;color:#13386F}
+.call.atencao{background:var(--warn-bg);border-color:#F5D9A8;color:#8A5A00}
+.call.import{background:var(--success-bg);border-color:#B7E3C6;color:#0F5A2C}
+/* mockups */
+.fig{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin:18px 0;box-shadow:0 8px 22px rgba(14,23,38,.08)}
+.fig .cap{background:var(--graphite);color:#C2C9D6;font-size:.76rem;padding:7px 14px;letter-spacing:.02em}
+.fig .body{padding:18px;background:#fff}
+.mini-app{display:flex;border:1px solid var(--border2);border-radius:10px;overflow:hidden;font-size:.8rem}
+.mini-side{width:150px;background:var(--graphite);color:#C2C9D6;padding:12px 10px;flex:none}
+.mini-side .lg{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+.mini-side .lg svg{width:20px;height:20px}
+.mini-side .lg .w{font-family:var(--font-display);font-weight:700;letter-spacing:.16em;font-size:.66rem}
+.mini-side .grp{font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;color:#667085;margin:10px 0 4px}
+.mini-side .it{display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:6px;margin-bottom:2px}
+.mini-side .it svg{width:15px;height:15px;opacity:.85}
+.mini-side .it.on{background:var(--blue);color:#fff}
+.mini-main{flex:1;padding:14px;background:#fbfcfe}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:8px;padding:9px 11px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue)}
+.kpi.g::before{background:var(--success)}.kpi.r::before{background:var(--danger)}
+.kpi .l{font-size:.6rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
+.kpi .v{font-size:1.1rem;font-weight:800;font-variant-numeric:tabular-nums}
+.abar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.ab{font-size:.72rem;padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:#fff;color:var(--muted);font-weight:600}
+.ab.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+table.t{width:100%;border-collapse:collapse;font-size:.76rem}
+table.t th{text-align:left;padding:6px 8px;border-bottom:2px solid var(--blue);text-transform:uppercase;font-size:.62rem;letter-spacing:.04em;color:var(--muted)}
+table.t td{padding:5px 8px;border-bottom:1px solid var(--border2)}
+table.t td.num{text-align:right;font-variant-numeric:tabular-nums}
+.tag{font-size:.64rem;font-weight:700;padding:2px 7px;border-radius:99px}
+.tag.pg{background:var(--success-bg);color:var(--success)} .tag.av{background:var(--warn-bg);color:var(--warn)}
+.modcard{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--border2)}
+.modcard:last-child{border:0}
+.modcard .mi{width:42px;height:42px;border-radius:10px;background:var(--blue-soft);color:var(--blue-d);display:flex;align-items:center;justify-content:center;flex:none}
+.modcard .mi svg{width:22px;height:22px}
+.modcard .mt{font-weight:700;font-family:var(--font-display)}
+.modcard .md{font-size:.9rem;color:var(--muted)}
+.pill{display:inline-block;font-size:.7rem;font-weight:600;background:var(--graphite2);color:#fff;padding:1px 8px;border-radius:99px;margin-left:6px;vertical-align:middle}
+.flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0}
+.flow .box{background:var(--blue-soft);border:1px solid #C3D9FC;color:var(--blue-d);border-radius:9px;padding:9px 13px;font-size:.82rem;font-weight:600;text-align:center}
+.flow .ar{color:var(--muted2);font-weight:700}
+footer{text-align:center;color:var(--muted);font-size:.82rem;padding:26px 0 50px}
+footer .fin{font-weight:700;color:var(--blue-d)}
+@media(max-width:680px){.toc ol{columns:1}.hero h1{font-size:1.7rem}.mini-side{display:none}}
+@media print{body{background:#fff}section,.toc{box-shadow:none;break-inside:avoid}.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="badge">
+      <svg class="sym" viewBox="0 0 48 48" fill="none" stroke="#60A5FA" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6l15 9v18l-15 9-15-9V15z"/><path d="M16 28l6-6 5 4 6-8"/><path d="M33 18h4v4"/></svg>
+      <span class="wm">VIZIO</span><span class="fin">Finance</span>
+    </div>
+    <h1>Manual do Usuário</h1>
+    <p>Gerenciador de Financiamento — acompanhe entrada, documentação, juros de obra e o financiamento do seu imóvel num painel só. Este guia cobre todas as telas e os principais fluxos, passo a passo.</p>
+    <div class="meta">Versão do sistema: <b>v1.2.0</b> · Documento atualizado em julho/2026 · <b>Sua planilha virou software.</b></div>
+  </div>
+</div>
+
+<div class="wrap">
+<nav class="toc">
+  <h2>Conteúdo</h2>
+  <ol>
+    <li><a href="#acesso">Acesso e login</a></li>
+    <li><a href="#interface">A interface (visão geral)</a></li>
+    <li><a href="#perfis">Perfis do sistema</a></li>
+    <li><a href="#inicio">Início e Visão Geral</a></li>
+    <li><a href="#etapas">Configurar etapas e gerar parcelas</a></li>
+    <li><a href="#pagar">Marcar parcelas como pagas</a></li>
+    <li><a href="#obra">Juros de obra</a></li>
+    <li><a href="#financiamento">Financiamento e Simulador</a></li>
+    <li><a href="#pdf">Importar do PDF (MRV)</a></li>
+    <li><a href="#importexport">Importar/Exportar (Excel, Word, PDF)</a></li>
+    <li><a href="#conta">Assinatura e área do gestor</a></li>
+    <li><a href="#faq">Dúvidas frequentes</a></li>
+  </ol>
+</nav>
+</div>
+
+<div class="wrap">
+
+<!-- 1 -->
+<section id="acesso">
+  <h2><span class="n">1</span> Acesso e login</h2>
+  <p class="lead">O sistema abre no navegador, sem instalar nada. Cada comprador tem seu próprio ambiente e login.</p>
+  <ul>
+    <li><b>Endereço:</b> o link do seu ambiente (ex.: <code>gerenciador.viziostudio.com.br</code>).</li>
+    <li><b>Entrar:</b> informe <b>usuário</b> e <b>senha</b> e clique em <b>Entrar</b>.</li>
+    <li><b>Dois tipos de acesso:</b> <b>Proprietário</b> (vê e gerencia o próprio imóvel) e <b>Gestor/Master</b> (acesso administrativo: Clientes e Configurador).</li>
+  </ul>
+  <div class="call dica"><span class="ic">💡</span><div>Ícone/olho no campo de senha mostra o que você digitou. Se esquecer a senha, o gestor pode redefinir.</div></div>
+</section>
+
+<!-- 2 -->
+<section id="interface">
+  <h2><span class="n">2</span> A interface (visão geral)</h2>
+  <p class="lead">A tela tem três áreas: o <b>menu lateral</b> (à esquerda), a <b>barra de ações</b> de cada módulo (no topo do conteúdo) e o <b>painel</b>.</p>
+
+  <div class="fig">
+    <div class="cap">Exemplo · tela de um módulo com o menu lateral e a barra de ações</div>
+    <div class="body">
+      <div class="mini-app">
+        <div class="mini-side">
+          <div class="lg"><svg viewBox="0 0 48 48" fill="none" stroke="#60A5FA" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6l15 9v18l-15 9-15-9V15z"/><path d="M16 28l6-6 5 4 6-8"/></svg><span class="w">VIZIO</span></div>
+          <div class="grp">Painel</div>
+          <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18M7 13l3-3 3 2 5-6"/></svg>Visão Geral</div>
+          <div class="grp">Etapas</div>
+          <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>Entrada</div>
+          <div class="it on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Documentação</div>
+          <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V10l5-3 5 3v11"/></svg>Juros de Obra</div>
+          <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10l9-6 9 6M4 10v9M20 10v9M8 10v9M12 10v9M16 10v9M2 21h20"/></svg>Financiamento</div>
+        </div>
+        <div class="mini-main">
+          <div class="abar"><span class="ab on">Painel</span><span class="ab">Gerenciar dados</span><span class="ab">Importar</span><span class="ab">Excel</span><span class="ab">Word</span><span class="ab">CSV</span><span class="ab">Relatório PDF</span></div>
+          <div class="kpis">
+            <div class="kpi g"><div class="l">Total pago</div><div class="v">R$ 7.200</div></div>
+            <div class="kpi"><div class="l">A vencer</div><div class="v">R$ 44.234</div></div>
+            <div class="kpi r"><div class="l">Concluído</div><div class="v">14%</div></div>
+          </div>
+          <table class="t"><thead><tr><th>Parcela</th><th>Vencimento</th><th class="num">Valor</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>20/08/2024</td><td class="num">R$ 700,00</td><td><span class="tag pg">Pago</span></td></tr>
+            <tr><td>2</td><td>08/09/2024</td><td class="num">R$ 1.500,00</td><td><span class="tag pg">Pago</span></td></tr>
+            <tr><td>3</td><td>08/10/2024</td><td class="num">R$ 1.200,50</td><td><span class="tag av">A vencer</span></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>A barra de ações (em cada módulo)</h3>
+  <ul>
+    <li><b>Painel</b> — os gráficos e indicadores da etapa.</li>
+    <li><b>Gerenciar dados</b> — onde você configura a etapa, gera parcelas, edita e marca pagas.</li>
+    <li><b>Importar</b> — carregar dados de <b>PDF</b>, <b>Excel</b> ou <b>CSV</b>.</li>
+    <li><b>Excel / Word / CSV</b> — baixar a etapa nesses formatos.</li>
+    <li><b>Relatório PDF</b> — gera um relatório para imprimir ou salvar como PDF.</li>
+  </ul>
+  <div class="call dica"><span class="ic">💡</span><div>Todo campo de valor tem <b>máscara automática</b>: digite só os números que ele formata em R$ (ex.: <code>187000</code> vira <code>187.000</code>).</div></div>
+</section>
+
+<!-- 3 -->
+<section id="perfis">
+  <h2><span class="n">3</span> Perfis do sistema</h2>
+  <p class="lead">O mesmo sistema atende diferentes situações de financiamento. O perfil define <b>quais módulos aparecem</b>.</p>
+  <table class="t" style="font-size:.86rem">
+    <thead><tr><th>Perfil</th><th>Para quem</th><th>Módulos ativos</th></tr></thead>
+    <tbody>
+      <tr><td><b>Imóvel na planta</b></td><td>Comprou na planta (ex.: MRV)</td><td>Entrada · Documentação · Juros de Obra · Financiamento · Simulador</td></tr>
+      <tr><td><b>Imóvel pronto</b></td><td>Imóvel já construído</td><td>Entrada · Documentação · Financiamento · Simulador</td></tr>
+      <tr><td><b>Em andamento</b></td><td>Já paga e quer controlar</td><td>Financiamento · Simulador</td></tr>
+      <tr><td><b>Veículo (CDC)</b></td><td>Financiou um carro</td><td>Entrada · Financiamento · Simulador</td></tr>
+      <tr><td><b>Empréstimo / CDC</b></td><td>Empréstimo genérico</td><td>Financiamento · Simulador</td></tr>
+    </tbody>
+  </table>
+  <div class="call dica"><span class="ic">💡</span><div>O perfil é definido na criação do ambiente. O padrão é <b>Imóvel na planta</b> (o caso mais completo).</div></div>
+</section>
+
+<!-- 4 -->
+<section id="inicio">
+  <h2><span class="n">4</span> Início e Visão Geral</h2>
+  <div class="modcard"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg></div><div><div class="mt">Início</div><div class="md">A porta de entrada: quanto você já investiu, o custo total, quanto falta e o percentual concluído. Traz um resumo em linguagem simples e atalhos para todos os módulos.</div></div></div>
+  <div class="modcard"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18M7 13l3-3 3 2 5-6"/></svg></div><div><div class="mt">Visão Geral</div><div class="md">O painel completo do imóvel: custo total, já investido, falta pagar, desembolso acumulado por ano e as próximas parcelas de todas as etapas.</div></div></div>
+</section>
+
+<!-- 5 -->
+<section id="etapas">
+  <h2><span class="n">5</span> Configurar etapas e gerar parcelas</h2>
+  <p class="lead">Cada etapa (Entrada, Documentação, Financiamento, Juros de Obra) pode gerar o cronograma automaticamente a partir de uma configuração.</p>
+  <ol class="steps">
+    <li>Abra o módulo (ex.: <b>Entrada Parcelada</b>) e clique em <b>Gerenciar dados</b>.</li>
+    <li>No cartão <b>⚙ Configuração da etapa</b>, preencha os campos (valor total, nº de parcelas, forma, 1ª parcela, e juros quando houver).</li>
+    <li>Clique em <b>⚙ Gerar parcelas</b> — o cronograma é criado automaticamente.</li>
+    <li>Opcional: <b>Salvar configuração</b> para guardar esses parâmetros.</li>
+  </ol>
+  <div class="call atencao"><span class="ic">⚠️</span><div>O botão <b>Gerar parcelas</b> lê os campos na hora. Não precisa salvar antes — mas confira os valores digitados, pois ele substitui as parcelas atuais da etapa.</div></div>
+  <p>Você também pode adicionar/editar parcelas manualmente com <b>＋ Novo</b>, útil quando o contrato tem valores específicos.</p>
+</section>
+
+<!-- 6 -->
+<section id="pagar">
+  <h2><span class="n">6</span> Marcar parcelas como pagas</h2>
+  <p class="lead">Marcar uma parcela como paga abate do total e atualiza os indicadores na hora.</p>
+  <ol class="steps">
+    <li>No módulo, clique em <b>Gerenciar dados</b>.</li>
+    <li>Na tabela, marque a caixinha <b>Pago?</b> da parcela (um clique).</li>
+    <li>Se o valor pago foi diferente do previsto (reajuste), edite a parcela e informe o <b>Valor pago</b> — a <b>diferença corrigida</b> é calculada sozinha.</li>
+  </ol>
+  <div class="call dica"><span class="ic">💡</span><div>Use o filtro <b>só a vencer</b> para focar no que falta, e a busca para achar uma parcela específica.</div></div>
+</section>
+
+<!-- 7 -->
+<section id="obra">
+  <h2><span class="n">7</span> Juros de obra</h2>
+  <div class="modcard"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V10l5-3 5 3v11M9 21v-5h2v5"/></svg></div><div><div class="mt">Juros de Obra <span class="pill">imóvel na planta</span></div><div class="md">Durante a obra, o banco cobra juros sobre o valor já liberado ao construtor, mais correção pelo INCC. Cresce conforme a obra avança e termina no "Habite-se".</div></div></div>
+  <ol class="steps">
+    <li>Em <b>Juros de Obra → Gerenciar dados</b>, preencha: <b>Valor financiado</b>, <b>Juros (% a.m.)</b>, <b>Meses de obra</b> e <b>INCC (% a.m.)</b>.</li>
+    <li>Clique em <b>Gerar parcelas</b> — o sistema calcula cada mês (juros sobre o liberado + correção), com a <b>evolução da obra</b>.</li>
+  </ol>
+  <div class="call dica"><span class="ic">💡</span><div>Ordem de grandeza real: juros de obra costumam somar de 8% a 15% do valor financiado ao longo de 24–36 meses.</div></div>
+</section>
+
+<!-- 8 -->
+<section id="financiamento">
+  <h2><span class="n">8</span> Financiamento e Simulador</h2>
+  <div class="modcard"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10l9-6 9 6M4 10v9M20 10v9M8 10v9M12 10v9M16 10v9M2 21h20"/></svg></div><div><div class="mt">Financiamento</div><div class="md">O saldo devedor do banco e a amortização. Suporta <b>SAC</b> (parcela decrescente) e <b>PRICE</b> (parcela fixa). Em <b>Gerenciar dados</b>, informe valor financiado, tipo, nº de meses, juros e a 1ª parcela.</div></div></div>
+  <div class="modcard"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2M14 11h2M8 15h2"/></svg></div><div><div class="mt">Simulador de amortização antecipada</div><div class="md">Veja o impacto de aportes: quanto economiza de juros e quanto reduz de prazo. Escolha <b>reduzir prazo</b> ou <b>reduzir parcela</b>.</div></div></div>
+  <ol class="steps">
+    <li>Abra o <b>Simulador</b>.</li>
+    <li>Escolha o modo: <b>Reduzir prazo</b> ou <b>Reduzir parcela</b>.</li>
+    <li>Ajuste os campos em azul (saldo, juros, parcela, aporte mensal, aporte único) — todos com máscara de valor.</li>
+    <li>O resultado e o gráfico "sem aporte × com aporte" atualizam automaticamente.</li>
+  </ol>
+</section>
+
+<!-- 9 -->
+<section id="pdf">
+  <h2><span class="n">9</span> Importar do PDF (documentos da MRV)</h2>
+  <p class="lead">O recurso que mais economiza tempo: carregar os PDFs que a construtora envia e alimentar o sistema automaticamente. São dois documentos que se complementam.</p>
+
+  <div class="flow">
+    <div class="box">Confissão de Dívida<br><small>cronograma previsto</small></div>
+    <span class="ar">→</span>
+    <div class="box">Extrato MRV<br><small>o que já foi pago</small></div>
+    <span class="ar">→</span>
+    <div class="box">Sistema alimentado<br><small>previsto + pago</small></div>
+  </div>
+
+  <h3>Como funciona</h3>
+  <ul>
+    <li><b>Confissão de Dívida</b> = o <b>cronograma previsto</b> (todas as parcelas e vencimentos).</li>
+    <li><b>Extrato</b> = o <b>realizado</b> (o que já foi pago, com data e reajuste).</li>
+    <li>O sistema lê o PDF <b>no seu navegador</b>, reconhece o tipo e mostra uma <b>prévia</b> do que vai entrar em cada módulo — nada é gravado sem sua confirmação.</li>
+  </ul>
+
+  <h4>Para onde vai cada dado</h4>
+  <table class="t" style="font-size:.86rem">
+    <thead><tr><th>No documento</th><th>Vai para o módulo</th></tr></thead>
+    <tbody>
+      <tr><td>Sinais + parcelas mensais + diferença</td><td><b>Entrada Parcelada</b></td></tr>
+      <tr><td>Taxas de cartório + ITBI</td><td><b>Documentação</b></td></tr>
+      <tr><td>Financiamento bancário (CEF)</td><td><b>Financiamento</b> (valor do principal)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Passo a passo</h3>
+  <ol class="steps">
+    <li>Abra <b>Entrada Parcelada → Gerenciar dados → Importar</b>.</li>
+    <li>Escolha primeiro o PDF da <b>Confissão de Dívida</b>. Confira na prévia (ex.: <i>Entrada Parcelada · 56 itens · R$ 51.434,24</i>) e clique <b>Importar</b>. Isso cria o cronograma completo.</li>
+    <li>Depois importe o <b>Extrato</b>. Ele <b>marca as parcelas pagas</b> (sem apagar as futuras) e ainda preenche <b>Documentação</b> e o <b>Financiamento</b>.</li>
+  </ol>
+  <div class="call import"><span class="ic">✅</span><div><b>Recomendação:</b> sempre Confissão primeiro (cria o previsto), Extrato depois (marca o pago). Assim você tem o quadro completo — o que falta e o que já quitou.</div></div>
+  <div class="call atencao"><span class="ic">⚠️</span><div>O leitor de PDF funciona com os documentos de <b>texto</b> da MRV. Para outros formatos ou construtoras, use a importação por <b>Excel/CSV</b> (ou avise para adicionarmos o modelo).</div></div>
+</section>
+
+<!-- 10 -->
+<section id="importexport">
+  <h2><span class="n">10</span> Importar e Exportar (Excel, Word, PDF, CSV)</h2>
+  <h3>Importar por planilha</h3>
+  <ol class="steps">
+    <li>No módulo, <b>Gerenciar dados → Importar</b> e escolha um <b>Excel</b> (.xlsx) ou <b>CSV</b>.</li>
+    <li>O sistema reconhece as colunas pelo <b>cabeçalho</b> (parcela, vencimento, valor, etc.) e preenche as parcelas.</li>
+  </ol>
+  <div class="call dica"><span class="ic">💡</span><div>Dica para o modelo: <b>exporte a etapa em Excel/CSV</b> primeiro e use esse arquivo como base — o cabeçalho já vem certo.</div></div>
+  <h3>Exportar</h3>
+  <p>Em qualquer módulo, use os botões da barra: <b>Excel</b>, <b>Word</b>, <b>CSV</b> (baixam a tabela) e <b>Relatório PDF</b> (abre a janela de impressão — escolha "Salvar como PDF"). Tudo já sai com o cabeçalho e a marca Vizio Finance.</p>
+</section>
+
+<!-- 11 -->
+<section id="conta">
+  <h2><span class="n">11</span> Assinatura e área do gestor</h2>
+  <div class="modcard"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16l-5.3 2.6 1-5.8L3.5 8.7l5.9-.9z"/></svg></div><div><div class="mt">Assinatura</div><div class="md">Mostra o plano e o status do pagamento. Quando não há assinatura ativa, aparece o botão para assinar; quando está ativa, aparece "Assinatura ativa ✓".</div></div></div>
+  <div class="modcard"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg></div><div><div class="mt">Clientes <span class="pill">só gestor</span></div><div class="md">Lista das contas dos clientes e o estado de cada uma. Visível apenas para o usuário master.</div></div></div>
+  <div class="modcard"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3 1a7 7 0 0 0-1.7-1l-.3-2.5h-4l-.3 2.5a7 7 0 0 0-1.7 1l-2.3-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.3-1a7 7 0 0 0 1.7 1l.3 2.5h4l.3-2.5a7 7 0 0 0 1.7-1l2.3 1 2-3.5-2-1.5a7 7 0 0 0 .1-1z"/></svg></div><div><div class="mt">Configurador <span class="pill">só gestor</span></div><div class="md">Gera a configuração de um novo comprador (novo ambiente). Área exclusiva de administradores.</div></div></div>
+  <div class="call dica"><span class="ic">💡</span><div>No rodapé do menu aparece a <b>versão</b> (ex.: v1.2.0). Clique nela para ver o <b>histórico de novidades</b> (changelog).</div></div>
+</section>
+
+<!-- 12 -->
+<section id="faq">
+  <h2><span class="n">12</span> Dúvidas frequentes</h2>
+  <h4>Estou vendo uma versão antiga da tela.</h4>
+  <p>É cache do navegador. Pressione <b>Ctrl + Shift + R</b> (ou Cmd + Shift + R no Mac) para recarregar.</p>
+  <h4>Gerei parcelas e vieram erradas/zeradas.</h4>
+  <p>Confirme que preencheu <b>valor</b> e <b>nº de meses/parcelas</b>, e que a taxa está no formato certo (ex.: <code>0,9</code>). O botão Gerar lê o formulário na hora.</p>
+  <h4>Importei o PDF e a prévia veio diferente do esperado.</h4>
+  <p>Verifique se é o PDF de <b>texto</b> da MRV (Confissão ou Extrato). Se os números baterem estranho, avise — é ajuste rápido de leitura.</p>
+  <h4>Quero recomeçar do zero.</h4>
+  <p>O gestor pode usar <b>🗑 Zerar minha conta</b> (em Gerenciar dados) — apaga todos os dados e as configurações, incluindo o Valor Financiado. Ação irreversível.</p>
+  <h4>Funciona no celular?</h4>
+  <p>Sim. É um app web responsivo (PWA) — dá até para "instalar" na tela inicial pelo navegador.</p>
+</section>
+
+</div>
+
+<footer>
+  <div><b>VIZIO</b> <span class="fin">Finance</span> · Gerenciador de Financiamento · v1.2.0</div>
+  <div>Sua planilha virou software. · um produto INPERSON</div>
+</footer>
+
+</body>
+</html>
