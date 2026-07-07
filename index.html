@@ -231,6 +231,7 @@ body.home .topbar .user button.out{border-color:#283149;color:#8A93A8}
     <div class="logo"><img class="sym" src="vizio-symbol-light.png" alt="VIZIO"><img class="wm" src="vizio-wordmark-light.png" alt="VIZIO"><span class="fin-badge">Finance</span></div>
     <div class="prop" id="sideProp">🏠 Meu Apê 203 — Dom Pedro I</div>
     <nav class="nav" id="nav"></nav>
+    <div style="padding:8px 12px;border-top:1px solid var(--graphite2)"><a href="#" onclick="if(window.WIZ){WIZ.open();}return false;" style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;color:#C2C9D6;text-decoration:none;font-size:.86rem;font-weight:600"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Editar configuração</a></div>
     <div class="foot"><span id="sideFoot">Gerenciador de Financiamento · v1.0</span></div>
   </aside>
   <div class="main">
@@ -256,8 +257,9 @@ const INSTANCIA = CFG.instancia || 'Meu Apê 203 — Dom Pedro I';
 const PROP_LABEL= CFG.propLabel || 'Proprietária';
 const AUTH_URL  = CFG.authUrl   || '';
 /* ===== Controle de versão ===== */
-const APP_VERSION='1.2.1';
+const APP_VERSION='1.3.0';
 const CHANGELOG=[
+  {v:'1.3.0',d:'03/07/2026',itens:['Assistente Guiado de Financiamento: configuração passo a passo com liberação progressiva','Escolhe o tipo (planta/pronto), calcula parcela e comprometimento ao vivo, e gera todo o cronograma','Ao concluir, o sistema libera o acompanhamento · botão "Editar configuração" no menu']},
   {v:'1.2.1',d:'03/07/2026',itens:['Manual de uso ilustrado integrado ao sistema (menu Ajuda › Manual)']},
   {v:'1.2.0',d:'03/07/2026',itens:['Importar PDF da MRV: Confissão de Dívida (cronograma previsto) e Extrato (pagamentos realizados)','Leitura no navegador com prévia e confirmação antes de gravar','Extrato mescla pagas sobre o cronograma e preenche Documentação e Financiamento']},
   {v:'1.1.0',d:'03/07/2026',itens:['Identidade Vizio Finance (cor, tipografia, selo, logo animado)','Sistema multi-perfil (planta, pronto, em andamento, veículo, empréstimo)','Juros de obra com cálculo de mercado (saldo liberado + INCC)','Importar/Exportar em Excel, Word, PDF e CSV','Máscara de valor (R$) em todo o sistema','Ícones únicos por módulo','Correção da geração de parcelas']},
@@ -421,6 +423,7 @@ function startApp(){
   document.getElementById('uRole').textContent=SESSION.perfil==='admin'?'Gestor (INPERSON)':(SESSION.roleLabel||PROP_LABEL);
   document.getElementById('uAv').textContent=SESSION.nome.split(' ').map(x=>x[0]).slice(0,2).join('');
   buildNav();navigate('home');
+  try{ if(window.WIZ)WIZ.maybeStart(); }catch(e){} /* assistente guiado na 1ª configuração */
 }
 function buildNav(){
   const nav=document.getElementById('nav');let html='';let lastGrp=null;
@@ -826,6 +829,7 @@ if(SESSION)startApp();
 </script>
 <script src="app-crud.js"></script>
 <script src="supabase-mode.js"></script>
+<script src="wizard.js"></script>
 <!-- INPERSON/VIZIO · mostrar-ocultar senha (cobre campos dinamicos) -->
 <style>
 .pw-wrap{position:relative;display:block}
