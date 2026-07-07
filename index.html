@@ -45,6 +45,9 @@ td.num,th.num,.kpi .val,.statlist .ct{font-family:var(--font);font-variant-numer
 .login-card .lg img.sym,.side .logo img.sym,.home-logo img.sym{animation:vzpulse 2.8s ease-in-out infinite;transform-origin:center;will-change:transform,filter}
 @media(prefers-reduced-motion:reduce){.login-card .lg img.sym,.side .logo img.sym,.home-logo img.sym{animation:none}}
 *{box-sizing:border-box;margin:0;padding:0}
+/* barras de rolagem invisíveis (mantendo o scroll) */
+*{scrollbar-width:none;-ms-overflow-style:none}
+*::-webkit-scrollbar{width:0;height:0;display:none}
 body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer}
 .hidden{display:none!important}
@@ -151,9 +154,14 @@ tfoot th{position:sticky;bottom:0;background:var(--surface)}
 .simres .rc.eco{background:#062a18;border-color:#0c6b3a}
 .simres .rc.eco .l{color:#7DE3AE}.simres .rc.eco .v{color:#34D399}
 @media(max-width:680px){.simres{grid-template-columns:1fr}}
-/* ===== HOME PREMIUM (escura, VIZIO) ===== */
-body.home{background:#0C0F18}
-body.home .topbar{background:#10141F;border-bottom-color:#1E2536}
+/* ===== HOME PREMIUM (escura, VIZIO — superfície única, AURA por trás de tudo) ===== */
+body.home{background:#0B0E16}
+body.home .main{background:transparent}
+body.home .topbar{background:transparent;border-bottom-color:transparent}
+body.home .side{background:transparent}
+body.home .side .prop{border-bottom-color:rgba(255,255,255,.05)}
+body.home .side .foot{border-top-color:rgba(255,255,255,.05)}
+body.home .nav a:hover{background:rgba(255,255,255,.06)}
 body.home .topbar .crumb{color:#fff}
 body.home .topbar .crumb small{color:#7C86A0}
 body.home .topbar .who b{color:#E8EAEE}
@@ -257,8 +265,9 @@ const INSTANCIA = CFG.instancia || 'Meu Apê 203 — Dom Pedro I';
 const PROP_LABEL= CFG.propLabel || 'Proprietária';
 const AUTH_URL  = CFG.authUrl   || '';
 /* ===== Controle de versão ===== */
-const APP_VERSION='1.4.0';
+const APP_VERSION='1.5.0';
 const CHANGELOG=[
+  {v:'1.5.0',d:'07/07/2026',itens:['Marca-mãe VIZIO: símbolo do cubo empilhado (marca principal do ecossistema) no login, menu, Início e rodapé','AURA v2: mais intensa, com partículas mais vivas e reação ao movimento do mouse (parallax)','Início como superfície única: menu, topo e conteúdo sem costuras','Barras de rolagem invisíveis em todo o sistema']},
   {v:'1.4.0',d:'05/07/2026',itens:['Nova identidade VIZIO Finance: símbolo oficial (hexágono + seta), wordmark e favicons/PWA 100% fiéis','Modo AURA: brilho que respira + partículas + logo pulsante (liga/desliga no canto ✨)','Tipografia unificada da família VIZIO (Raleway + Inter)']},
   {v:'1.3.0',d:'03/07/2026',itens:['Assistente Guiado de Financiamento: configuração passo a passo com liberação progressiva','Escolhe o tipo (planta/pronto), calcula parcela e comprometimento ao vivo, e gera todo o cronograma','Ao concluir, o sistema libera o acompanhamento · botão "Editar configuração" no menu']},
   {v:'1.2.1',d:'03/07/2026',itens:['Manual de uso ilustrado integrado ao sistema (menu Ajuda › Manual)']},

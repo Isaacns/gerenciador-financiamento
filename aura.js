@@ -1,8 +1,10 @@
 /* =========================================================================
-   MODO AURA — Vizio (efeito de ambiente: brilho que respira + partículas)
-   Fiel ao studio/painel.html (@keyframes breathe), enriquecido com partículas
-   e pulsação. Adaptável pela cor de destaque (--blue / window.VZ_ACCENT).
+   MODO AURA — VIZIO (ambiente vivo: brilho que respira + partículas + mouse)
+   v2 — mais intenso, com parallax pelo movimento do mouse e mais movimento.
+   Fiel ao studio/painel.html (@keyframes breathe), enriquecido.
    Auto-contido: window.AURA. Toggle persistente (localStorage vz_aura_on).
+   Seletores em superset: funciona no Financiamento (.side/.main/.login-card)
+   e no Consórcio (#login>.box, #app aside/main, cockpit, portal).
    ========================================================================= */
 (function(){
   'use strict';
@@ -17,41 +19,62 @@
   var KEY='vz_aura_on';
   function on(){ try{return localStorage.getItem(KEY)!=='0';}catch(e){return true;} }
 
-  /* CSS */
+  /* CSS — gradientes mais fortes + respiração mais rápida e ampla */
   var css=document.createElement('style'); css.id='auraCSS'; css.textContent=
     '.vz-aura{position:absolute;inset:0;z-index:0;pointer-events:none;background:'+
-      'radial-gradient(60vw 60vw at 18% -10%,rgba('+R+',.16),transparent 60%),'+
-      'radial-gradient(50vw 50vw at 110% 10%,rgba(124,58,237,.12),transparent 60%);'+
-      'animation:vzbreathe 9s ease-in-out infinite}'+
-    '.vz-aura.fixed{position:fixed;mix-blend-mode:screen;opacity:.9}'+
-    '@keyframes vzbreathe{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}'+
+      'radial-gradient(58vw 58vw at 16% -8%,rgba('+R+',.30),transparent 60%),'+
+      'radial-gradient(52vw 52vw at 112% 8%,rgba(124,58,237,.24),transparent 60%),'+
+      'radial-gradient(60vw 60vw at 50% 120%,rgba('+R+',.16),transparent 62%);'+
+      'animation:vzbreathe 7s ease-in-out infinite}'+
+    '.vz-afix{position:fixed;inset:-9%;z-index:0;pointer-events:none;will-change:transform;transition:transform .12s linear}'+
+    '.vz-afix .vz-aura{mix-blend-mode:screen;opacity:1}'+
+    '@keyframes vzbreathe{0%,100%{opacity:.62;transform:scale(1) translateY(0)}50%{opacity:1;transform:scale(1.07) translateY(-1.2%)}}'+
     '.vz-parts{position:absolute;inset:0;z-index:0;pointer-events:none}'+
-    '.vz-parts.fixed{position:fixed;mix-blend-mode:screen;opacity:.55}'+
-    '.vz-aura-off .vz-aura,.vz-aura-off .vz-parts{display:none!important}'+
-    /* garante o conteúdo acima do aura */
-    '#login>.login-card{position:relative;z-index:2}'+
-    '#app{position:relative}#app>.side,#app>.main{position:relative;z-index:1}'+
-    '#app .side>*{position:relative;z-index:1}'+ /* eleva logo/nav/foot acima do aura da sidebar */
-    '#vzAuraBtn{position:fixed;right:14px;bottom:14px;z-index:120;background:rgba(17,24,39,.82);color:#fff;border:1px solid rgba(255,255,255,.16);border-radius:99px;padding:8px 13px;font:600 .76rem/1 Inter,system-ui,sans-serif;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;gap:6px;align-items:center;transition:.2s}'+
+    '.vz-afix .vz-parts{mix-blend-mode:screen;opacity:.8}'+
+    '.vz-aura-off .vz-aura,.vz-aura-off .vz-parts,.vz-aura-off .vz-afix{display:none!important}'+
+    /* garante o conteúdo acima do aura (superset de seletores dos dois apps) */
+    '#login>.login-card,#login>.box,#login>.card{position:relative;z-index:2}'+
+    '#app{position:relative}'+
+    '#app>.side,#app>.main,#app>aside,#app>main{position:relative;z-index:1}'+
+    '#app .side>*,#app aside>*{position:relative;z-index:1}'+
+    '#vzAuraBtn{position:fixed;right:14px;bottom:64px;z-index:120;background:rgba(17,24,39,.82);color:#fff;border:1px solid rgba(255,255,255,.16);border-radius:99px;padding:8px 13px;font:600 .76rem/1 Inter,system-ui,sans-serif;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;gap:6px;align-items:center;transition:.2s}'+
     '#vzAuraBtn:hover{border-color:'+HEX+'}'+
-    '@media print{.vz-aura,.vz-parts,#vzAuraBtn{display:none!important}}';
+    '@media print{.vz-aura,.vz-parts,.vz-afix,#vzAuraBtn{display:none!important}}';
   document.head.appendChild(css);
 
-  var canvases=[];
-  function makeAura(fixed){ var d=document.createElement('div'); d.className='vz-aura'+(fixed?' fixed':''); return d; }
-  function makeCanvas(fixed){ var c=document.createElement('canvas'); c.className='vz-parts'+(fixed?' fixed':''); canvases.push(c); return c; }
+  /* ---- estado do mouse (parallax) ---- */
+  var mx=0,my=0,cmx=0,cmy=0;
+  addEventListener('pointermove',function(e){ mx=(e.clientX/innerWidth-.5)*2; my=(e.clientY/innerHeight-.5)*2; },{passive:true});
+  addEventListener('deviceorientation',function(e){ if(e.gamma!=null){ mx=Math.max(-1,Math.min(1,e.gamma/35)); my=Math.max(-1,Math.min(1,(e.beta-45)/35)); } },{passive:true});
 
-  function inject(container, fixed){
+  var canvases=[]; // {c, parallax}
+  function makeAura(){ var d=document.createElement('div'); d.className='vz-aura'; return d; }
+  function makeCanvas(parallax){ var c=document.createElement('canvas'); c.className='vz-parts'; canvases.push({c:c,parallax:!!parallax}); return c; }
+  function inject(container){
     if(!container)return;
-    container.insertBefore(makeCanvas(fixed), container.firstChild);
-    container.insertBefore(makeAura(fixed), container.firstChild);
+    container.insertBefore(makeCanvas(false), container.firstChild);
+    container.insertBefore(makeAura(), container.firstChild);
   }
 
-  function particlesFor(canvas){
-    var ctx=canvas.getContext('2d'), parts=[], raf=0;
+  function particlesFor(item){
+    var canvas=item.c, parallax=item.parallax, ctx=canvas.getContext('2d'), parts=[], raf=0;
     function size(){ var r=canvas.getBoundingClientRect(); canvas.width=Math.max(1,r.width||innerWidth); canvas.height=Math.max(1,r.height||innerHeight); }
-    function seed(){ parts=[]; var n=Math.round((canvas.width*canvas.height)/26000); n=Math.max(24,Math.min(70,n)); for(var i=0;i<n;i++)parts.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*2+.6,vx:(Math.random()-.5)*.22,vy:(Math.random()-.5)*.22,a:Math.random()*.45+.2}); }
-    function loop(){ if(!on()){raf=0;return;} ctx.clearRect(0,0,canvas.width,canvas.height); for(var i=0;i<parts.length;i++){var p=parts[i];p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=canvas.width;if(p.x>canvas.width)p.x=0;if(p.y<0)p.y=canvas.height;if(p.y>canvas.height)p.y=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.283);ctx.fillStyle='rgba('+R+','+p.a+')';ctx.fill();} raf=requestAnimationFrame(loop); }
+    function seed(){ parts=[]; var n=Math.round((canvas.width*canvas.height)/21000); n=Math.max(30,Math.min(96,n));
+      for(var i=0;i<n;i++)parts.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*2.1+.7,vx:(Math.random()-.5)*.34,vy:(Math.random()-.5)*.34,a:Math.random()*.5+.28,z:Math.random()*16+4}); }
+    function loop(){
+      if(!on()){raf=0;return;}
+      cmx+=(mx-cmx)*.06; cmy+=(my-cmy)*.06;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      var ox=parallax?cmx:0, oy=parallax?cmy:0;
+      for(var i=0;i<parts.length;i++){var p=parts[i];
+        p.x+=p.vx;p.y+=p.vy;
+        if(p.x<-20)p.x=canvas.width+20;if(p.x>canvas.width+20)p.x=-20;if(p.y<-20)p.y=canvas.height+20;if(p.y>canvas.height+20)p.y=-20;
+        var dx=p.x+ox*p.z, dy=p.y+oy*p.z;
+        ctx.beginPath();ctx.arc(dx,dy,p.r,0,6.283);ctx.fillStyle='rgba('+R+','+p.a+')';ctx.fill();
+        if(p.r>1.5){ ctx.beginPath();ctx.arc(dx,dy,p.r*2.4,0,6.283);ctx.fillStyle='rgba('+R+','+(p.a*.14)+')';ctx.fill(); }
+      }
+      raf=requestAnimationFrame(loop);
+    }
     function start(){ if(reduce||!on())return; size(); seed(); if(!raf)loop(); }
     addEventListener('resize',function(){ size(); seed(); });
     return {start:start};
@@ -59,23 +82,30 @@
 
   var btn=document.createElement('button'); btn.id='vzAuraBtn'; btn.type='button'; btn.innerHTML='✨ AURA';
   function apply(){ document.body.classList.toggle('vz-aura-off', !on()); btn.style.opacity=on()?'1':'.5'; }
-  btn.onclick=function(){ try{localStorage.setItem(KEY, on()?'0':'1');}catch(e){} apply(); starts.forEach(function(s){s.start();}); };
+  var starts=[], afix=null;
+  btn.onclick=function(){ try{localStorage.setItem(KEY, on()?'0':'1');}catch(e){} apply(); starts.forEach(function(s){s.start();}); if(afix)tickFix(); };
 
-  var starts=[];
+  function tickFix(){
+    if(!afix||!on()||reduce)return;
+    afix.style.transform='translate('+(cmx*30)+'px,'+(cmy*26)+'px)';
+    requestAnimationFrame(tickFix);
+  }
+
   function mount(){
     if(!document.body)return;
-    // login (fundo escuro) — aura absoluta dentro do #login
-    inject(document.getElementById('login'), false);
-    // sidebar (fundo escuro) — aura respirando atrás do menu
-    inject(document.querySelector('#app .side'), false);
-    // app inteiro — camada fixa (screen) para os ambientes escuros (sidebar/hero)
-    var fa=makeAura(true), fc=makeCanvas(true);
-    document.body.insertBefore(fc, document.body.firstChild);
-    document.body.insertBefore(fa, document.body.firstChild);
+    /* camada fixa (screen) por toda a tela — o coração do efeito, com parallax */
+    afix=document.createElement('div'); afix.className='vz-afix';
+    afix.appendChild(makeAura());
+    afix.appendChild(makeCanvas(true));
+    document.body.insertBefore(afix, document.body.firstChild);
+    /* login e barra lateral (fundos opacos) recebem aura própria */
+    inject(document.getElementById('login'));
+    inject(document.querySelector('#app .side') || document.querySelector('#app aside'));
     document.body.appendChild(btn);
-    canvases.forEach(function(c){ starts.push(particlesFor(c)); });
+    canvases.forEach(function(it){ starts.push(particlesFor(it)); });
     apply();
     starts.forEach(function(s){ s.start(); });
+    tickFix();
   }
   window.AURA={ toggle:function(){ btn.click(); }, on:on };
   if(document.readyState!=='loading')mount(); else document.addEventListener('DOMContentLoaded',mount);
