@@ -17,7 +17,7 @@ function r2(n){ return Math.round((Number(n)||0)*100)/100; }
 function correcaoEntrada(e){ if(!e||e.pago==null||e.pago===""||e.valor==null)return null; return r2(Number(e.pago)-Number(e.valor)); }
 function moneyFmt(n){ return (Number(n)||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function BRL(v){ return (v==null||v==="")?"—":"R$ "+moneyFmt(v); }
-function moneyParse(s){ if(s==null||s==="")return null; s=String(s).replace(/[^\d.,-]/g,""); if(s.indexOf(",")>=0)s=s.replace(/\./g,"").replace(",","."); var n=parseFloat(s); return isNaN(n)?null:n; }
+function moneyParse(s){ if(s==null||s==="")return null; s=String(s).replace(/[^\d.,-]/g,""); if(s.indexOf(",")>=0)s=s.replace(/\./g,"").replace(",","."); else if(/^-?\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,""); var n=parseFloat(s); return isNaN(n)?null:n; }
 function dBR(s){ if(!s||s==="—")return "—"; var p=String(s).split("-"); return p.length===3?(p[2].slice(0,2)+"/"+p[1]+"/"+p[0]):s; }
 function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function addMonths(ym,k){ if(!ym)return ""; var p=String(ym).split("-"); var y=+p[0],m=(+p[1]||1)-1+k; y+=Math.floor(m/12); m=((m%12)+12)%12; var d=p[2]||"08"; return y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0"); }

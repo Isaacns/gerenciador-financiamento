@@ -11,7 +11,7 @@
   function fmt(n){return (Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
   function brl(n){return 'R$ '+fmt(n);}
   function pct(n){return (Number(n)||0).toFixed(1).replace('.',',')+'%';}
-  function moneyNum(s){ if(s==null||s==='')return 0; s=String(s).replace(/[^\d.,-]/g,''); if(s.indexOf(',')>=0)s=s.replace(/\./g,'').replace(',','.'); var n=parseFloat(s); return isNaN(n)?0:n; }
+  function moneyNum(s){ if(s==null||s==='')return 0; s=String(s).replace(/[^\d.,-]/g,''); if(s.indexOf(',')>=0)s=s.replace(/\./g,'').replace(',','.'); else if(/^-?\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,''); var n=parseFloat(s); return isNaN(n)?0:n; }
   function addMonths(iso,k){ var p=String(iso||'').split('-'); var y=+p[0]||2025,m=(+p[1]||1)-1,d=+p[2]||8; var dt=new Date(y,m+k,d); return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
   function thisMonthISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-08'; }
   function monthlyRate(aa){ aa=Number(aa)||0; return Math.pow(1+aa/100,1/12)-1; } /* a.a. -> a.m. efetivo */
