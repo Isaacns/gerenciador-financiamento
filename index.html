@@ -257,8 +257,9 @@ const INSTANCIA = CFG.instancia || 'Meu Apê 203 — Dom Pedro I';
 const PROP_LABEL= CFG.propLabel || 'Proprietária';
 const AUTH_URL  = CFG.authUrl   || '';
 /* ===== Controle de versão ===== */
-const APP_VERSION='1.3.0';
+const APP_VERSION='1.4.0';
 const CHANGELOG=[
+  {v:'1.4.0',d:'05/07/2026',itens:['Nova identidade VIZIO Finance: símbolo oficial (hexágono + seta), wordmark e favicons/PWA 100% fiéis','Modo AURA: brilho que respira + partículas + logo pulsante (liga/desliga no canto ✨)','Tipografia unificada da família VIZIO (Raleway + Inter)']},
   {v:'1.3.0',d:'03/07/2026',itens:['Assistente Guiado de Financiamento: configuração passo a passo com liberação progressiva','Escolhe o tipo (planta/pronto), calcula parcela e comprometimento ao vivo, e gera todo o cronograma','Ao concluir, o sistema libera o acompanhamento · botão "Editar configuração" no menu']},
   {v:'1.2.1',d:'03/07/2026',itens:['Manual de uso ilustrado integrado ao sistema (menu Ajuda › Manual)']},
   {v:'1.2.0',d:'03/07/2026',itens:['Importar PDF da MRV: Confissão de Dívida (cronograma previsto) e Extrato (pagamentos realizados)','Leitura no navegador com prévia e confirmação antes de gravar','Extrato mescla pagas sobre o cronograma e preenche Documentação e Financiamento']},
@@ -830,6 +831,7 @@ if(SESSION)startApp();
 <script src="app-crud.js"></script>
 <script src="supabase-mode.js"></script>
 <script src="wizard.js"></script>
+<script src="aura.js"></script>
 <!-- INPERSON/VIZIO · mostrar-ocultar senha (cobre campos dinamicos) -->
 <style>
 .pw-wrap{position:relative;display:block}
