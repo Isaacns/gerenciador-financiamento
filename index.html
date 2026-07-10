@@ -848,7 +848,13 @@ function runSim(){
   ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:8,font:{family:'Inter'}}},tooltip:{callbacks:{title:c=>'Mês '+c[0].label,label:c=>c.dataset.label+': '+fmtBRL(c.parsed.y)}}},scales:{y:{ticks:{callback:x=>'R$ '+(x/1000).toFixed(0)+'k',font:{family:'Inter'}},grid:{color:'#EEF1F6'},min:0},x:{grid:{display:false},title:{display:true,text:'meses',font:{family:'Inter',size:10}},ticks:{maxTicksLimit:14,font:{family:'Inter',size:10}}}}}});
 }
 
-if(SESSION)startApp();
+/* Sessão legada (sessionStorage) — só vale no modo demo, sem nuvem.
+   Com Supabase ligado, quem abre o app é EXCLUSIVAMENTE o portão em
+   supabase-mode.js (autenticar › perfil › assinatura). Qualquer resquício
+   de sessão local é descartado: era um caminho que entrava sem verificação. */
+if(DADOS._cfg && DADOS._cfg.supabaseUrl){
+  SESSION=null; try{sessionStorage.removeItem('vizio_fin_sess');}catch(e){}
+} else if(SESSION){ startApp(); }
 </script>
 <script src="app-crud.js"></script>
 <script src="gating.js"></script>
