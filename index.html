@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Financiamento">
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Raleway:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -25,7 +25,7 @@
   /* Vizio Finance — #2563EB + grays do board (#1F2937/#6B7280/#F3F4F6) */
   --blue:#2563EB; --blue-h:#3B82F6; --blue-d:#1D4ED8; --sky:#60A5FA; --blue-soft:#EAF1FE;
   --ink:#0E1726; --graphite:#111827; --graphite2:#1F2937; --graphite3:#374151;
-  --bg:#F3F5F9; --surface:#fff; --text:#111827; --muted:#6B7280; --muted2:#9CA3AF;
+  --bg:#F3F4F6; --surface:#fff; --text:#111827; --muted:#6B7280; --muted2:#9CA3AF;
   --border:#E4E8EF; --border2:#EEF1F6; --row:#F7F9FC;
   --success:#16A34A; --success-bg:#E7F6ED; --warn:#D97706; --warn-bg:#FBF1DC;
   --danger:#DC2626; --danger-bg:#FBEAEA; --info:#2563EB; --info-bg:#E8F0FE;
@@ -37,9 +37,20 @@
 /* Títulos em Raleway (personalidade); tabelas/números seguem Inter (legibilidade) */
 h1,h2,h3,.crumb,.sec-title,.login-card h1,.home-title,.card h2{font-family:var(--font-display);letter-spacing:-.01em}
 td.num,th.num,.kpi .val,.statlist .ct{font-family:var(--font);font-variant-numeric:tabular-nums}
-/* Selo Vizio Finance (sub-marca) */
-.fin-badge{font-family:var(--font-display);font-weight:700;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--blue);padding:2px 7px;border-radius:5px;line-height:1.4;display:inline-block;vertical-align:middle}
-.fin-badge.ghost{background:transparent;color:var(--blue);border:1px solid var(--blue);padding:1px 6px}
+/* ===== Lockup oficial Vizio Finance (branding board) =====
+   Símbolo (hexágono + seta) · VIZIO · FINANCE · seu gerenciador de financiamento */
+.fin-badge{font-family:var(--font-display);font-weight:600;font-size:.68rem;letter-spacing:.34em;text-indent:.34em;text-transform:uppercase;color:var(--blue);background:none;padding:0;line-height:1.3;display:inline-block;vertical-align:middle}
+.fin-badge.ghost{background:none;color:var(--blue);border:0;padding:0;font-size:.6rem}
+.fin-tag{font-family:var(--font-display);font-weight:500;font-size:.58rem;letter-spacing:.17em;text-indent:.17em;text-transform:uppercase;color:var(--muted2);line-height:1.4}
+/* lockup vertical (logo principal) */
+.lockup-v{display:flex;flex-direction:column;align-items:center;gap:7px}
+.lockup-v img.sym{height:62px}
+.lockup-v img.wm{height:27px}
+.lockup-v .fin-badge{margin-top:-2px}
+/* lockup horizontal */
+.lockup-h{display:flex;align-items:center;gap:11px}
+.lockup-h .lk{display:flex;flex-direction:column;align-items:flex-start;gap:1px}
+.lockup-h .lk .fin-badge{font-size:.56rem;letter-spacing:.3em;text-indent:.3em}
 /* Logo VIZIO viva — pulsação/respiração (login, sidebar e home) */
 @keyframes vzpulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0 rgba(37,99,235,0))}50%{transform:scale(1.07);filter:drop-shadow(0 0 11px rgba(37,99,235,.55))}}
 .login-card .lg img.sym,.side .logo img.sym,.home-logo img.sym{animation:vzpulse 2.8s ease-in-out infinite;transform-origin:center;will-change:transform,filter}
@@ -111,7 +122,7 @@ button{font-family:inherit;cursor:pointer}
 .card h2{font-size:1.05rem;font-weight:700}
 .card .cap{font-size:.82rem;color:var(--muted);margin-bottom:14px}
 .grid2{display:grid;grid-template-columns:1.5fr 1fr;gap:18px}
-@media(max-width:980px){.grid2{grid-template-columns:1fr}.side{width:74px}.side .logo img.wm,.side .prop,.nav .grp,.nav a span.t,.side .foot span{display:none}.nav a{justify-content:center}}
+@media(max-width:980px){.grid2{grid-template-columns:1fr}.side{width:74px}.side .logo .lk,.side .prop,.nav .grp,.nav a span.t,.side .foot span{display:none}.nav a{justify-content:center}}
 .chartbox{position:relative;height:300px}.chartbox.tall{height:380px}.chartbox.xtall{position:relative;height:520px}
 .tbl-wrap{overflow-x:auto;max-height:560px;overflow-y:auto}
 table{width:100%;border-collapse:collapse;font-size:.86rem}
@@ -168,11 +179,12 @@ body.home .topbar .who b{color:#E8EAEE}
 body.home .topbar .who span{color:#667085}
 body.home .topbar .user button.out{border-color:#283149;color:#8A93A8}
 .home-hero{text-align:center;padding:18px 10px 24px}
-.home-logo{display:flex;align-items:center;justify-content:center;gap:12px;filter:drop-shadow(0 8px 28px rgba(28,100,240,.38))}
-.home-logo img.sym{height:56px}.home-logo img.wm{height:38px}
+.home-logo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;filter:drop-shadow(0 8px 28px rgba(28,100,240,.38))}
+.home-logo img.sym{height:66px}.home-logo img.wm{height:30px}
+.home-logo .fin-tag{color:#7C86A0}
 .home-title{font-size:1.32rem;font-weight:800;letter-spacing:.02em;margin-top:16px;color:#fff}
 .home-title span{font-weight:300;color:#7C86A0}
-.home-sub{font-size:.84rem;color:#7C86A0;margin-top:3px}
+.home-sub{font-size:.84rem;color:#7C86A0;margin-top:16px}
 .home-kpis{display:flex;justify-content:center;flex-wrap:wrap;margin-top:22px}
 .home-kpis .hk{padding:0 26px;border-right:1px solid #232B40}
 .home-kpis .hk:last-child{border-right:0}
@@ -222,7 +234,7 @@ body.home .topbar .user button.out{border-color:#283149;color:#8A93A8}
 
 <div id="login">
   <form class="login-card" onsubmit="return doLogin(event)">
-    <div class="lg"><img class="sym" src="vizio-symbol-dark.png" alt="VIZIO"><img class="wm" src="vizio-wordmark-dark.png" alt="VIZIO"><span class="fin-badge">Finance</span></div>
+    <div class="lg lockup-v"><img class="sym" src="vizio-symbol-dark.png" alt="Vizio Finance"><img class="wm" src="vizio-wordmark-dark.png" alt="VIZIO"><span class="fin-badge">Finance</span><span class="fin-tag">Seu gerenciador de financiamento</span></div>
     <h1 id="lgTitle">Gerenciador de Financiamento</h1>
     <div class="sb" id="lgSub">Meu Apê 203 — Dom Pedro I · acesso restrito</div>
     <div class="login-err" id="loginErr"></div>
@@ -236,7 +248,7 @@ body.home .topbar .user button.out{border-color:#283149;color:#8A93A8}
 
 <div id="app" class="hidden">
   <aside class="side">
-    <div class="logo"><img class="sym" src="vizio-symbol-light.png" alt="VIZIO"><img class="wm" src="vizio-wordmark-light.png" alt="VIZIO"><span class="fin-badge">Finance</span></div>
+    <div class="logo lockup-h"><img class="sym" src="vizio-symbol-light.png" alt="Vizio Finance"><div class="lk"><img class="wm" src="vizio-wordmark-light.png" alt="VIZIO"><span class="fin-badge">Finance</span></div></div>
     <div class="prop" id="sideProp">🏠 Meu Apê 203 — Dom Pedro I</div>
     <nav class="nav" id="nav"></nav>
     <div style="padding:8px 12px;border-top:1px solid var(--graphite2)"><a href="#" onclick="if(window.WIZ){WIZ.open();}return false;" style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;color:#C2C9D6;text-decoration:none;font-size:.86rem;font-weight:600"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Editar configuração</a></div>
@@ -265,8 +277,9 @@ const INSTANCIA = CFG.instancia || 'Meu Apê 203 — Dom Pedro I';
 const PROP_LABEL= CFG.propLabel || 'Proprietária';
 const AUTH_URL  = CFG.authUrl   || '';
 /* ===== Controle de versão ===== */
-const APP_VERSION='1.5.0';
+const APP_VERSION='1.6.0';
 const CHANGELOG=[
+  {v:'1.6.0',d:'10/07/2026',itens:['Identidade Vizio Finance 100% fiel ao branding board: símbolo oficial (hexágono + seta) no login, menu, Início, rodapé e favicons/PWA','Lockup oficial VIZIO · FINANCE · "Seu gerenciador de financiamento" (versões vertical e horizontal)','Paleta do board (#2563EB · #60A5FA · #111827 · #9CA3AF · #F3F4F6) e Raleway nos pesos Regular/Medium/SemiBold','O cubo VIZIO segue como marca-mãe do ecossistema']},
   {v:'1.5.0',d:'07/07/2026',itens:['Marca-mãe VIZIO: símbolo do cubo empilhado (marca principal do ecossistema) no login, menu, Início e rodapé','AURA v2: mais intensa, com partículas mais vivas e reação ao movimento do mouse (parallax)','Início como superfície única: menu, topo e conteúdo sem costuras','Barras de rolagem invisíveis em todo o sistema']},
   {v:'1.4.0',d:'05/07/2026',itens:['Nova identidade VIZIO Finance: símbolo oficial (hexágono + seta), wordmark e favicons/PWA 100% fiéis','Modo AURA: brilho que respira + partículas + logo pulsante (liga/desliga no canto ✨)','Tipografia unificada da família VIZIO (Raleway + Inter)']},
   {v:'1.3.0',d:'03/07/2026',itens:['Assistente Guiado de Financiamento: configuração passo a passo com liberação progressiva','Escolhe o tipo (planta/pronto), calcula parcela e comprometimento ao vivo, e gera todo o cronograma','Ao concluir, o sistema libera o acompanhamento · botão "Editar configuração" no menu']},
@@ -577,8 +590,7 @@ function renderHome(v){
   const prox=DADOS.entrada.find(e=>!e.quitado);
   v.innerHTML=`
     <div class="home-hero">
-      <div class="home-logo"><img class="sym" src="vizio-symbol-light.png"><img class="wm" src="vizio-wordmark-light.png"></div>
-      <div class="home-title">GERENCIADOR DE <span>FINANCIAMENTO</span></div>
+      <div class="home-logo lockup-v"><img class="sym" src="vizio-symbol-light.png" alt="Vizio Finance"><img class="wm" src="vizio-wordmark-light.png" alt="VIZIO"><span class="fin-badge">Finance</span><span class="fin-tag">Seu gerenciador de financiamento</span></div>
       <div class="home-sub">${INSTANCIA} · Sua planilha virou software.</div>
       <div class="home-kpis">
         <div class="hk"><div class="hk-n">${fmtBRL(r.totalInvestido)}</div><div class="hk-l">Já investido</div></div>
@@ -590,7 +602,7 @@ function renderHome(v){
     <div class="home-insight">${svg('financiamento')}<div><b>Situação:</b> você já quitou ${fmtPct(pctGeral)} do imóvel (${fmtBRL(r.totalInvestido)} de ${fmtBRL(r.custoTotal)}). O grande bloco restante é o <b>financiamento de ${fmtBRL(fm.saldoInicial)}</b> em 420 parcelas — use o <b>Simulador</b> para ver quanto um aporte mensal economiza de juros.</div></div>
     <div class="home-sectitle">Etapas e ferramentas</div>
     <div class="home-grid">${cards}</div>
-    <div class="home-foot"><div class="lg"><img class="sym" src="vizio-symbol-light.png"><img class="wm" src="vizio-wordmark-light.png"><span class="fin-badge">Finance</span></div><span>Sua planilha virou software. · Vizio Finance · um produto INPERSON</span></div>`;
+    <div class="home-foot"><div class="lg lockup-h"><img class="sym" src="vizio-symbol-light.png" alt="Vizio Finance"><div class="lk"><img class="wm" src="vizio-wordmark-light.png" alt="VIZIO"><span class="fin-badge">Finance</span></div></div><span>Sua planilha virou software. · Vizio Finance · um produto INPERSON</span></div>`;
 }
 
 let chD,chE,chDoc,chO,chF,chS;
