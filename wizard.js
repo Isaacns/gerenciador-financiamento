@@ -97,8 +97,9 @@
     "#wizOvl{position:fixed;inset:0;z-index:150;background:var(--bg,#F3F5F9);display:flex;flex-direction:column;overflow:auto}"+
     "#wizOvl.hidden{display:none!important}"+
     ".wz-top{background:radial-gradient(120% 120% at 80% 0%,#1F2937,#0B0E16);color:#fff;padding:20px 24px}"+
-    ".wz-top .lg{display:flex;align-items:center;gap:8px;margin-bottom:12px}"+
-    ".wz-top .lg svg{width:26px;height:26px;animation:vzpulse 2.8s ease-in-out infinite}.wz-top .lg .w{font-family:var(--font-display,Raleway),sans-serif;font-weight:700;letter-spacing:.2em;font-size:.8rem}.wz-top .lg .f{font-family:var(--font-display,Raleway),sans-serif;font-weight:700;font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;background:var(--blue,#2563EB);padding:2px 7px;border-radius:5px}"+
+    ".wz-top .lg{display:flex;align-items:center;gap:10px;margin-bottom:12px}"+
+    ".wz-top .lg .lk{display:flex;flex-direction:column;align-items:flex-start;gap:1px}"+
+    ".wz-top .lg img{width:28px;height:28px;animation:vzpulse 2.8s ease-in-out infinite}.wz-top .lg .w{font-family:var(--font-display,Raleway),sans-serif;font-weight:600;letter-spacing:.24em;font-size:.8rem;line-height:1.2}.wz-top .lg .f{font-family:var(--font-display,Raleway),sans-serif;font-weight:600;font-size:.54rem;letter-spacing:.3em;text-indent:.3em;text-transform:uppercase;color:var(--sky,#60A5FA);background:none;padding:0;line-height:1.3}"+
     ".wz-steps{display:flex;gap:6px;flex-wrap:wrap}"+
     ".wz-steps .s{font-size:.72rem;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.12);color:#C2C9D6;font-weight:600}"+
     ".wz-steps .s.on{background:var(--blue,#2563EB);color:#fff}.wz-steps .s.done{background:rgba(22,163,74,.25);color:#86EFAC}"+
@@ -131,7 +132,7 @@
     document.head.appendChild(s); }
 
   function ensureDom(){ if($('wizOvl'))return; var o=document.createElement('div'); o.id='wizOvl'; o.className='hidden';
-    o.innerHTML='<div class="wz-top"><div class="lg"><svg viewBox="0 0 48 48" fill="none" stroke="#60A5FA" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6l15 9v18l-15 9-15-9V15z"/><path d="M16 28l6-6 5 4 6-8"/></svg><span class="w">VIZIO</span><span class="f">Finance</span></div><div class="wz-steps" id="wzSteps"></div></div>'+
+    o.innerHTML='<div class="wz-top"><div class="lg"><img src="vizio-symbol-light.png" alt="Vizio Finance"><div class="lk"><span class="w">VIZIO</span><span class="f">Finance</span></div></div><div class="wz-steps" id="wzSteps"></div></div>'+
       '<div class="wz-body" id="wzBody"></div><div class="wz-nav" id="wzNav"></div>';
     document.body.appendChild(o);
     /* listeners delegados anexados UMA vez ao container (sobrevivem aos re-renders do innerHTML) */
