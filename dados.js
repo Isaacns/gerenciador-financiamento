@@ -8,6 +8,10 @@ const DADOS = {
     instancia: "Meu Apê 203 — Dom Pedro I",
     propLabel: "Proprietária",
     trialDays: 0,
+    gating: true,             // portão de assinatura ligado
+    requireLogin: true,       // exige e-mail+senha a cada visita (não entra por sessão salva)
+    pastDueGraceDays: 3,      // carência após falha de cobrança, com faixa de aviso
+    precoLabel: "R$ 49,90/mês",
     supabaseUrl: "https://emyjzjadmxgbtmxnzazu.supabase.co",
     supabaseKey: "sb_publishable_PY2YDxUzGgaXRVtvCcasBA_Ml7YUBTC",
     assinaturaUrl: "https://buy.stripe.com/6oUdRbafr8nKfMgfP1eIw00"

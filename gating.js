@@ -32,8 +32,11 @@ if(!cfg().supabaseUrl){ return; } // modo demo: gating inerte
 var TRIAL_DAYS  = Number(cfg().trialDays != null ? cfg().trialDays : 14);
 var GATING_ON   = cfg().gating !== false;
 var PRICE_LABEL = cfg().precoLabel || "R$ 49,90/mês";
+/* Carência para past_due (falha de cobrança / retentativa do Stripe). 3 dias. */
+var PASTDUE_GRACE_DAYS = Number(cfg().pastDueGraceDays != null ? cfg().pastDueGraceDays : 3);
 var DAY = 86400000;
 var STATE = { ready:false, admin:false, status:"none", active:false, pastDue:false,
+              pastDueGrace:false, pastDueDaysLeft:null,
               trialValid:false, daysLeft:null, blocked:false };
 
 /* ---------- checkout: pega a sessão → criar-checkout → redireciona ---------- */
@@ -72,9 +75,21 @@ function compute(user, perfil, assina){
   } else { STATE.daysLeft = null; }
   STATE.trialValid = (TRIAL_DAYS > 0 && STATE.daysLeft != null && STATE.daysLeft > 0);
 
-  // Bloqueia só quando: gating ligado, não-admin, sem assinatura ativa, não past_due
-  // (past_due sempre libera) e fora do grace de cortesia.
-  STATE.blocked = GATING_ON && !STATE.admin && !STATE.active && !STATE.pastDue && !STATE.trialValid;
+  // past_due: carência de PASTDUE_GRACE_DAYS contados do fim do período pago.
+  // Dentro da carência -> libera com faixa de aviso. Fora -> bloqueia.
+  STATE.pastDueDaysLeft = null;
+  if(STATE.pastDue){
+    var end = (assina && assina.current_period_end) ? new Date(assina.current_period_end) : null;
+    if(end && !isNaN(end.getTime())){
+      STATE.pastDueDaysLeft = Math.ceil((end.getTime() + PASTDUE_GRACE_DAYS*DAY - Date.now()) / DAY);
+    } else {
+      STATE.pastDueDaysLeft = PASTDUE_GRACE_DAYS; // sem data conhecida: concede a carência cheia
+    }
+  }
+  STATE.pastDueGrace = STATE.pastDue && STATE.pastDueDaysLeft > 0;
+
+  // Libera apenas: admin, assinatura ativa/trial, past_due dentro da carência, ou cortesia app-level.
+  STATE.blocked = GATING_ON && !STATE.admin && !STATE.active && !STATE.pastDueGrace && !STATE.trialValid;
   STATE.ready = true;
 }
 
@@ -125,8 +140,9 @@ function renderBanner(){
   var ex = document.getElementById("vzGateBar"); if(ex) ex.remove();
   if(STATE.admin || STATE.active) return;             // sem banner p/ admin/assinante
   var msg, cls, label;
-  if(STATE.pastDue){
-    msg = "Pagamento pendente — regularize para manter o acesso."; cls = ""; label = "Regularizar";
+  if(STATE.pastDueGrace){
+    var d = STATE.pastDueDaysLeft;
+    msg = "Pagamento pendente — regularize em " + d + " dia(s) para não perder o acesso."; cls = ""; label = "Regularizar";
   } else if(STATE.trialValid && !STATE.blocked){
     msg = "Período de cortesia — " + STATE.daysLeft + " dia(s) restante(s). Assine para não perder o acesso."; cls = "info"; label = "Assinar";
   } else { return; }
@@ -153,9 +169,11 @@ function renderOverlay(){
         '<rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'+
       '</div>'+
       '<div class="vzGatePrice">Plano mensal · '+PRICE_LABEL+'</div>'+
-      '<h3>Assine para acessar</h3>'+
-      '<p>Seu acesso ao Gerenciador de Financiamento está pausado. Reative em segundos — seus dados continuam salvos e voltam exatamente como estavam.</p>'+
-      '<button class="vzGateBtn" type="button" id="vzGateGo">Assinar agora</button>'+
+      '<h3>'+(STATE.pastDue ? "Pagamento em atraso" : "Assine para acessar")+'</h3>'+
+      '<p>'+(STATE.pastDue
+        ? "A carência de "+PASTDUE_GRACE_DAYS+" dia(s) terminou e não conseguimos confirmar seu pagamento. Regularize para voltar agora — seus dados continuam salvos."
+        : "Seu acesso ao Gerenciador de Financiamento está pausado. Reative em segundos — seus dados continuam salvos e voltam exatamente como estavam.")+'</p>'+
+      '<button class="vzGateBtn" type="button" id="vzGateGo">'+(STATE.pastDue?"Regularizar pagamento":"Assinar agora")+'</button>'+
       '<a href="javascript:void(0)" class="vzGateExit" id="vzGateOut">Sair da conta</a>'+
     '</div>';
   document.body.appendChild(ov);
@@ -189,25 +207,65 @@ function wrapCrud(){
 /* ---------- ciclo ---------- */
 function apply(){ wrapCrud(); renderBanner(); renderOverlay(); }
 
-function refresh(){
-  var SB = window.SUPA; if(!SB) return;
-  SB.auth.getUser().then(function(r){
+/* check(): consulta o status real e RESOLVE com o STATE.
+   Falha FECHADA — se não der para verificar, não liberamos o app. */
+function check(){
+  var SB = window.SUPA;
+  if(!SB) return Promise.reject(new Error("supabase indisponível"));
+  return SB.auth.getUser().then(function(r){
     var user = r && r.data && r.data.user;
-    if(!user){ // deslogado: limpa tudo
-      STATE.ready = false; STATE.blocked = false;
-      var b=document.getElementById("vzGateBar"); if(b)b.remove();
-      var o=document.getElementById("vzGateOverlay"); if(o)o.remove();
-      return;
-    }
+    if(!user) throw new Error("não autenticado");
     return Promise.all([
       SB.from("fin_perfis").select("is_admin").maybeSingle(),
       SB.from("fin_assinaturas").select("status,current_period_end").maybeSingle()
     ]).then(function(res){
+      if(res[0] && res[0].error) throw res[0].error;
+      if(res[1] && res[1].error) throw res[1].error;
       compute(user, (res[0] && res[0].data) || {}, (res[1] && res[1].data) || {});
-      apply();
+      return STATE;
     });
-  }).catch(function(){ /* falha aberta: nunca bloqueia */ });
+  });
 }
+
+/* refresh(): só re-renderiza banner/overlay (ex.: retorno do Stripe). Nunca abre o app. */
+function refresh(){
+  return check().then(apply).catch(function(){ /* silencioso: o boot já decidiu */ });
+}
+
+/* ---------- tela de "não foi possível verificar" (falha fechada) ---------- */
+function showVerifyError(retry){
+  ensureCss();
+  var ex = document.getElementById("vzGateOverlay"); if(ex) ex.remove();
+  var ov = document.createElement("div"); ov.id = "vzGateOverlay";
+  ov.innerHTML =
+    '<div id="vzGateCard" role="dialog" aria-modal="true">'+
+      '<div class="vzGateRing">'+
+        '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+
+        '<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>'+
+      '</div>'+
+      '<h3>Não foi possível verificar sua assinatura</h3>'+
+      '<p>Por segurança, o acesso fica suspenso até confirmarmos o status da sua conta. Verifique sua conexão e tente novamente.</p>'+
+      '<button class="vzGateBtn" type="button" id="vzGateRetry">Tentar novamente</button>'+
+      '<a href="javascript:void(0)" class="vzGateExit" id="vzGateOut">Sair da conta</a>'+
+    '</div>';
+  document.body.appendChild(ov);
+  document.getElementById("vzGateRetry").onclick = function(){ ov.remove(); if(retry) retry(); };
+  document.getElementById("vzGateOut").onclick = function(){ if(window.logout) window.logout(); };
+}
+
+/* ---------- API pública usada pelo supabase-mode (boot e login) ---------- */
+window.VZGATE = {
+  check: check,
+  state: STATE,
+  apply: apply,
+  showBlock: function(){ ensureCss(); renderOverlay(); },
+  showVerifyError: showVerifyError,
+  clear: function(){
+    STATE.ready = false; STATE.blocked = false;
+    var b=document.getElementById("vzGateBar"); if(b)b.remove();
+    var o=document.getElementById("vzGateOverlay"); if(o)o.remove();
+  }
+};
 
 /* ---------- retorno do Stripe (?assinatura=ok|cancelada) ---------- */
 function handleReturn(){
@@ -228,12 +286,17 @@ function handleReturn(){
   if(ok){ [1500,4000,8000].forEach(function(ms){ setTimeout(refresh, ms); }); }
 }
 
+/* O boot (supabase-mode.js) é quem chama VZGATE.check() ANTES de abrir o app.
+   Aqui só tratamos o retorno do Stripe e re-render após mudanças de sessão.
+   Nada mais envolve o startApp nem libera o app por timer. */
 function init(){
   if(!window.SUPA){ setTimeout(init, 400); return; }
-  window.SUPA.auth.onAuthStateChange(function(){ setTimeout(refresh, 350); });
-  var _start = window.startApp;
-  window.startApp = function(){ if(_start) _start(); setTimeout(refresh, 250); };
-  setTimeout(refresh, 900);   // sessão persistida
+  window.SUPA.auth.onAuthStateChange(function(evt){
+    if(evt === "SIGNED_OUT"){ window.VZGATE.clear(); return; }
+    if(document.getElementById("app") && !document.getElementById("app").classList.contains("hidden")){
+      setTimeout(refresh, 350);   // já está dentro do app: só atualiza banner/overlay
+    }
+  });
   handleReturn();
 }
 init();

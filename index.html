@@ -277,8 +277,9 @@ const INSTANCIA = CFG.instancia || 'Meu Apê 203 — Dom Pedro I';
 const PROP_LABEL= CFG.propLabel || 'Proprietária';
 const AUTH_URL  = CFG.authUrl   || '';
 /* ===== Controle de versão ===== */
-const APP_VERSION='1.6.0';
+const APP_VERSION='1.7.0';
 const CHANGELOG=[
+  {v:'1.7.0',d:'10/07/2026',itens:['Segurança: o acesso agora é verificado ANTES de abrir o sistema — autenticar › carregar perfil › conferir assinatura','O app não entra mais sozinho por sessão salva: e-mail e senha são pedidos a cada visita','Pagamento em atraso: 3 dias de carência com faixa de aviso; depois, acesso pausado','Criar conta e sessão persistida passaram a respeitar o mesmo portão','Se não for possível verificar a assinatura, o acesso fica suspenso (falha fechada)','Clientes: a lista passa a mostrar apenas contas do Vizio Finance']},
   {v:'1.6.0',d:'10/07/2026',itens:['Identidade Vizio Finance 100% fiel ao branding board: símbolo oficial (hexágono + seta) no login, menu, Início, rodapé e favicons/PWA','Lockup oficial VIZIO · FINANCE · "Seu gerenciador de financiamento" (versões vertical e horizontal)','Paleta do board (#2563EB · #60A5FA · #111827 · #9CA3AF · #F3F4F6) e Raleway nos pesos Regular/Medium/SemiBold','O cubo VIZIO segue como marca-mãe do ecossistema']},
   {v:'1.5.0',d:'07/07/2026',itens:['Marca-mãe VIZIO: símbolo do cubo empilhado (marca principal do ecossistema) no login, menu, Início e rodapé','AURA v2: mais intensa, com partículas mais vivas e reação ao movimento do mouse (parallax)','Início como superfície única: menu, topo e conteúdo sem costuras','Barras de rolagem invisíveis em todo o sistema']},
   {v:'1.4.0',d:'05/07/2026',itens:['Nova identidade VIZIO Finance: símbolo oficial (hexágono + seta), wordmark e favicons/PWA 100% fiéis','Modo AURA: brilho que respira + partículas + logo pulsante (liga/desliga no canto ✨)','Tipografia unificada da família VIZIO (Raleway + Inter)']},
@@ -850,6 +851,7 @@ function runSim(){
 if(SESSION)startApp();
 </script>
 <script src="app-crud.js"></script>
+<script src="gating.js"></script>
 <script src="supabase-mode.js"></script>
 <script src="wizard.js"></script>
 <script src="aura.js"></script>

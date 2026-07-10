@@ -83,6 +83,45 @@ function entrar(perfil,email){
   if(window.setSession) window.setSession({nome:perfil.nome||email, perfil:perfil.papel||"proprietario", user:email, roleLabel:perfil.prop_label||"", isAdmin:!!perfil.is_admin});
 }
 
+/* ===== PORTÃO DE ACESSO =====================================================
+ * Ordem obrigatória: autenticar -> carregar perfil -> verificar assinatura
+ * -> só então abrir o app. Falha fechada: sem verificação, sem acesso.
+ * ========================================================================== */
+function checkingUI(on){
+  var el=document.getElementById("vzChecking");
+  if(!on){ if(el)el.remove(); return; }
+  if(el) return;
+  el=document.createElement("div"); el.id="vzChecking";
+  el.style.cssText="position:fixed;inset:0;z-index:8500;display:flex;align-items:center;justify-content:center;"+
+    "background:rgba(11,14,22,.72);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);"+
+    "color:#E8EAEE;font:600 .92rem 'Inter',system-ui,sans-serif;gap:12px";
+  el.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5AA0FF" stroke-width="2.4" stroke-linecap="round">'+
+    '<path d="M12 3a9 9 0 1 0 9 9"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.9s" repeatCount="indefinite"/></path></svg>'+
+    '<span>Verificando seu acesso…</span>';
+  document.body.appendChild(el);
+}
+
+function guardAndEnter(u,email,onErrText){
+  UID=u.id;
+  checkingUI(true);
+  return loadAll()
+    .then(function(perfil){ return ensurePerfil(u,perfil); })
+    .then(function(perfil){
+      if(!window.VZGATE){ checkingUI(false); entrar(perfil,email); return; }  // sem gating (demo)
+      return window.VZGATE.check().then(function(st){
+        checkingUI(false);
+        if(st.blocked){ window.VZGATE.showBlock(); return; }   // NÃO abre o app
+        entrar(perfil,email);       // startApp
+        window.VZGATE.apply();      // faixa de carência, se houver
+      });
+    })
+    .catch(function(e){
+      checkingUI(false);
+      if(window.VZGATE){ window.VZGATE.showVerifyError(function(){ guardAndEnter(u,email,onErrText); }); }
+      else if(onErrText){ onErrText("Erro ao carregar seus dados."); }
+    });
+}
+
 /* ----- login (substitui o doLogin do index) ----- */
 window.doLogin=function(ev){ ev.preventDefault();
   var email=(document.getElementById("u").value||"").trim();
@@ -90,8 +129,8 @@ window.doLogin=function(ev){ ev.preventDefault();
   var err=document.getElementById("loginErr"); err.textContent="Entrando…";
   SB.auth.signInWithPassword({email:email,password:pass}).then(function(r){
     if(r.error){ err.textContent="E-mail ou senha inválidos."; return; }
-    var u=r.data.user; UID=u.id;
-    loadAll().then(function(perfil){ return ensurePerfil(u,perfil); }).then(function(perfil){ entrar(perfil,email); }).catch(function(){ err.textContent="Erro ao carregar seus dados."; });
+    err.textContent="";
+    guardAndEnter(r.data.user, email, function(m){ err.textContent=m; });
   });
   return false;
 };
@@ -106,10 +145,19 @@ SB.auth.onAuthStateChange(function(evt){
   }
 });
 
-/* ----- sessão persistida: se já está logado, entra direto ----- */
+/* ----- boot: NUNCA entra direto. Ou pede login, ou passa pelo portão. -----
+ * requireLogin (DADOS._cfg.requireLogin, padrão true): a cada visita o usuário
+ * digita e-mail e senha. Links de convite/recuperação são preservados. */
+var REQUIRE_LOGIN = (CFG.requireLogin !== false);
+var IS_CONV_LINK  = /type=(invite|recovery|signup)/.test(location.hash||"");
+
 SB.auth.getSession().then(function(s){
-  if(s.data&&s.data.session){ var u=s.data.session.user; UID=u.id; var email=u.email;
-    loadAll().then(function(perfil){ return ensurePerfil(u,perfil); }).then(function(perfil){ entrar(perfil,email); }); }
+  var sess = s && s.data && s.data.session;
+  if(!sess) return;                                  // sem sessão: tela de login
+  if(REQUIRE_LOGIN && !IS_CONV_LINK){
+    return SB.auth.signOut().catch(function(){});     // força o login explícito
+  }
+  return guardAndEnter(sess.user, sess.user.email);   // sessão válida -> portão
 });
 
 /* ----- UI: tela de login (e-mail + esqueci senha) e botão alterar senha ----- */
@@ -156,7 +204,7 @@ window.doSignup=function(ev){ if(ev)ev.preventDefault();
   SB.auth.signUp({email:email,password:pass,options:{data:{nome:nome,instancia:inst},emailRedirectTo:location.href.split("#")[0]}}).then(function(r){
     if(r.error){ err.textContent="Erro: "+r.error.message; return; }
     var u=r.data&&r.data.user, session=r.data&&r.data.session;
-    if(session&&u){ UID=u.id; ensurePerfil(u,{}).then(function(){return loadAll();}).then(function(perfil){ entrar(perfil&&perfil.user_id?perfil:{nome:nome,papel:"proprietario",prop_label:"Propriet\u00e1rio"},email); }); }
+    if(session&&u){ guardAndEnter(u,email,function(m){ err.textContent=m; }); }   // conta nova tamb\u00e9m passa pelo port\u00e3o
     else { err.style.color="#15803D"; err.textContent="Conta criada! Confirme pelo link enviado ao seu e-mail e depois entre."; }
   });
   return false;
@@ -183,6 +231,6 @@ window.startApp=function(){ if(_startApp)_startApp();
   }
 };
 
-/* ----- carrega o gating por ultimo (bloqueio por assinatura) ----- */
-try{var _vzg=document.createElement("script");_vzg.src="gating.js";_vzg.async=false;document.head.appendChild(_vzg);}catch(e){}
+/* O gating.js agora é carregado por <script> no index.html, ANTES deste arquivo,
+   para que window.VZGATE já exista quando o portão (guardAndEnter) rodar. */
 })();
