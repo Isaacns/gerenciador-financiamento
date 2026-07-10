@@ -217,7 +217,7 @@
   function card(h,sub,inner){ return '<div class="wz-card"><h2>'+h+'</h2>'+(sub?'<div class="sub">'+sub+'</div>':'')+inner+'</div>'; }
   function grid(cardHtml){ return '<div class="wz-grid">'+cardHtml+sideHtml()+'</div>'; }
   function opt(val,t,s){ return '<div class="wz-opt'+(W.data.tipo===val?' on':'')+'" onclick="WIZ._pick(\''+val+'\')"><b>'+t+'</b><span>'+s+'</span></div>'; }
-  function shortcut(txt,fn){ return '<div class="wz-shortcut"><span>'+txt+'</span><button onclick="'+fn+'">Importar</button></div>'; }
+  function shortcut(txt,fn){ return '<div class="wz-shortcut"><span>'+txt+'</span><button type="button" onclick="'+fn+'">Importar</button></div>'; }
   function rev(k,v){ return '<tr><td style="padding:7px 0;border-bottom:1px solid var(--border2,#EEF1F6);color:var(--muted,#6B7280)">'+k+'</td><td style="padding:7px 0;border-bottom:1px solid var(--border2,#EEF1F6);text-align:right;font-weight:700">'+v+'</td></tr>'; }
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 
@@ -253,8 +253,10 @@
   function next(){ collect(); var act=steps(),cur=act[Math.min(W.step,act.length-1)]; if(!valid(cur))return; var i=act.indexOf(cur); if(i<act.length-1){ W.step=act[i+1]; render(); window.scrollTo(0,0);} }
   function back(){ collect(); var act=steps(),cur=act[Math.min(W.step,act.length-1)]; var i=act.indexOf(cur); if(i>0){ W.step=act[i-1]; render(); window.scrollTo(0,0);} }
   function pick(v){ W.data.tipo=v; render(); }
-  function importConf(){ close(); if(window.CRUD&&CRUD.importArquivo)CRUD.importArquivo('entrada'); }
-  function importExt(){ close(); if(window.CRUD&&CRUD.importArquivo)CRUD.importArquivo('entrada'); }
+  /* NÃO fechar o assistente: o close() era o motivo de "cair no Início" ao clicar
+     em Importar. O modal de prévia do PDF (z-index 200) aparece acima do wizard (150). */
+  function importConf(){ if(window.CRUD&&CRUD.importArquivo){ CRUD.importArquivo('entrada'); } else { toastLike('Importador ainda carregando — tente de novo em instantes.'); } }
+  function importExt(){ importConf(); }
 
   window.WIZ={ maybeStart:maybeStart, open:function(){open(true);}, close:close,
     _next:next,_back:back,_pick:pick,_finish:finish,_skip:skip,_importConf:importConf,_importExt:importExt };

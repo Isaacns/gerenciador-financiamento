@@ -246,14 +246,14 @@ function cfgCardHTML(id){
   var inner;
   if(id==="financiamento"){
     inner='<div class="cfgrow">'+
-      '<div class="cfgf"><label>Valor financiado (R$)</label><input id="cf_total" inputmode="decimal" value="'+(c.total?moneyFmt(c.total):"")+'"></div>'+
+      '<div class="cfgf"><label>Valor financiado</label><div class="moneyfld"><span class="pre">R$</span><input id="cf_total" inputmode="decimal" placeholder="0,00" value="'+(c.total?moneyFmt(c.total):"")+'" onblur="CRUD.fmtMoney(this)"></div></div>'+
       '<div class="cfgf"><label>Tipo</label><select id="cf_tipo"><option value="SAC"'+(c.tipo==="SAC"?" selected":"")+'>SAC (decrescente)</option><option value="PRICE"'+(c.tipo==="PRICE"?" selected":"")+'>PRICE (fixa)</option></select></div>'+
       '<div class="cfgf"><label>Nº de meses</label><input id="cf_meses" type="number" value="'+(c.meses||"")+'"></div>'+
       '<div class="cfgf"><label>Juros (% a.m.)</label><input id="cf_taxa" type="number" step="0.01" value="'+(c.taxa||"")+'"></div>'+
       '<div class="cfgf"><label>1ª parcela</label><input id="cf_data" type="month" value="'+(String(c.data||"").slice(0,7))+'"></div></div>';
   } else if(id==="obra"){
     inner='<div class="cfgrow">'+
-      '<div class="cfgf"><label>Valor financiado (R$)</label><input id="cf_total" inputmode="decimal" value="'+(c.total?moneyFmt(c.total):"")+'"></div>'+
+      '<div class="cfgf"><label>Valor financiado</label><div class="moneyfld"><span class="pre">R$</span><input id="cf_total" inputmode="decimal" placeholder="0,00" value="'+(c.total?moneyFmt(c.total):"")+'" onblur="CRUD.fmtMoney(this)"></div></div>'+
       '<div class="cfgf"><label>Juros de obra (% a.m.)</label><input id="cf_taxa" type="number" step="0.01" value="'+(c.taxa||"")+'"></div>'+
       '<div class="cfgf"><label>Meses de obra</label><input id="cf_meses" type="number" value="'+(c.meses||"")+'"></div>'+
       '<div class="cfgf"><label>INCC (% a.m.)</label><input id="cf_incc" type="number" step="0.01" value="'+(c.incc||"")+'"></div>'+
@@ -261,7 +261,7 @@ function cfgCardHTML(id){
   } else {
     var jurosShow=(id==="entrada");
     inner='<div class="cfgrow">'+
-      '<div class="cfgf"><label>Valor total (R$)</label><input id="cf_total" inputmode="decimal" value="'+(c.total?moneyFmt(c.total):"")+'"></div>'+
+      '<div class="cfgf"><label>Valor total</label><div class="moneyfld"><span class="pre">R$</span><input id="cf_total" inputmode="decimal" placeholder="0,00" value="'+(c.total?moneyFmt(c.total):"")+'" onblur="CRUD.fmtMoney(this)"></div></div>'+
       '<div class="cfgf"><label>Forma</label><select id="cf_forma" onchange="CRUD.cfgForma(\''+id+'\')"><option value="avista"'+(c.forma==="avista"?" selected":"")+'>À vista</option><option value="parcelado"'+(c.forma!=="avista"?" selected":"")+'>Parcelado</option></select></div>'+
       '<div class="cfgf"><label>Nº de parcelas</label><input id="cf_nparc" type="number" value="'+(c.nParc||"")+'" '+(c.forma==="avista"?"disabled":"")+'></div>'+
       (jurosShow?'<div class="cfgf"><label>Tipo</label><select id="cf_tipo"><option value="fixa"'+(c.tipo!=="juros"?" selected":"")+'>Parcelas fixas</option><option value="juros"'+(c.tipo==="juros"?" selected":"")+'>Com juros</option></select></div>'+
@@ -541,8 +541,14 @@ function importCSV(id){
    em CSV (SheetJS) e passa pelo mesmo mapeamento por cabeçalho. */
 function importArquivo(id){
   var sc=SCHEMAS[id]; if(!sc){toast("Importação disponível nas etapas de pagamento.","warn");return;}
+  /* O input precisa estar NO DOM: input solto faz o Chrome demorar (ou nem abrir)
+     o seletor de arquivos. Criamos, usamos e removemos. */
   var inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,.txt,.xlsx,.xls,.pdf,text/csv,application/pdf";
-  inp.onchange=function(){ var file=inp.files&&inp.files[0]; if(!file)return;
+  inp.style.cssText="position:fixed;left:-9999px;width:1px;height:1px;opacity:0";
+  document.body.appendChild(inp);
+  function limpar(){ try{ inp.remove(); }catch(e){} }
+  setTimeout(limpar, 120000);                    // rede de segurança se o usuário cancelar
+  inp.onchange=function(){ var file=inp.files&&inp.files[0]; setTimeout(limpar,0); if(!file)return;
     var nome=(file.name||"").toLowerCase();
     if(/\.pdf$/.test(nome)){ importPDF(file); return; }
     if(/\.(xlsx|xls)$/.test(nome)){
@@ -567,11 +573,15 @@ function importArquivo(id){
    Confissão = cronograma PREVISTO; Extrato = pagamentos REALIZADOS (mescla). */
 function pdfDateISO(br){ var p=String(br||"").split("/"); return p.length===3?(p[2]+"-"+p[1]+"-"+p[0]):""; }
 function pdfNum(x){ if(x==null)return 0; x=String(x).replace(/[^\d.,-]/g,""); if(x.indexOf(",")>=0)x=x.replace(/\./g,"").replace(",","."); var n=parseFloat(x); return isNaN(n)?0:n; }
+var PDF_WORKER="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 function pdfExtractText(file){
   return file.arrayBuffer().then(function(buf){
     if(typeof pdfjsLib==="undefined") throw new Error("leitor de PDF não carregado");
-    try{ pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; }catch(e){}
-    return pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise.then(function(pdf){
+    /* Sem worker, o pdf.js lê o arquivo na thread principal e TRAVA a aba.
+       Garantimos o worker e recusamos o fallback silencioso. */
+    try{ if(!pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc=PDF_WORKER; }catch(e){}
+    if(!pdfjsLib.GlobalWorkerOptions.workerSrc) throw new Error("worker do leitor de PDF indisponível");
+    return pdfjsLib.getDocument({data:new Uint8Array(buf), disableAutoFetch:true, disableStream:true}).promise.then(function(pdf){
       var chain=Promise.resolve(), out=[];
       for(var p=1;p<=pdf.numPages;p++){ (function(pn){ chain=chain.then(function(){ return pdf.getPage(pn).then(function(pg){ return pg.getTextContent().then(function(tc){
         var byY={}; tc.items.forEach(function(it){ var y=Math.round(it.transform[5]); (byY[y]=byY[y]||[]).push({x:it.transform[4],s:it.str}); });

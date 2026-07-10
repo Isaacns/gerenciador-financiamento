@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VIZIO · Configurador de Instância — Gerenciador de Financiamento</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Raleway:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --blue:#1C64F0; --blue-h:#3C94FC; --blue-d:#1450C8; --sky:#5AA0FF; --blue-soft:#E7EFFE;
@@ -18,9 +18,11 @@
 body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh}
 .wrap{max-width:1180px;margin:0 auto;padding:24px}
 .top{display:flex;align-items:center;gap:14px;padding:8px 2px 22px;color:#fff}
-.brand{display:flex;align-items:center;gap:10px}
-.brand .sym{width:38px;height:38px}
-.brand b{font-size:1.15rem;font-weight:800;letter-spacing:.14em}
+.brand{display:flex;align-items:center;gap:11px}
+.brand .sym{width:34px;height:34px}
+.brand .lk{display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2}
+.brand b{font-family:var(--font-display,'Raleway',sans-serif);font-size:1.05rem;font-weight:400;letter-spacing:.26em}
+.brand .fin{font-family:var(--font-display,'Raleway',sans-serif);font-weight:600;font-size:.56rem;letter-spacing:.3em;text-indent:.3em;text-transform:uppercase;color:#2563EB}
 .top .sub{margin-left:6px;font-size:.84rem;color:#7C86A0;border-left:1px solid #2A3346;padding-left:14px}
 .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:20px;align-items:start}
 @media(max-width:920px){.grid{grid-template-columns:1fr}}
@@ -75,8 +77,8 @@ code{background:#eef2fb;padding:1px 6px;border-radius:5px;font-size:.85em}
 <div class="wrap">
   <div class="top">
     <div class="brand">
-      <svg class="sym" viewBox="0 0 48 48" fill="none"><path d="M24 4l16 9v10L24 32 8 23V13z" fill="#1C64F0"/><path d="M24 20l16-9v10L24 30 8 21V11z" fill="#5AA0FF" opacity=".6"/><path d="M24 28l16-9v10l-16 9-16-9V19z" fill="#0E1726" opacity=".85"/></svg>
-      <b>VIZIO</b>
+      <img class="sym" src="vizio-symbol-light.png" alt="Vizio Finance">
+      <div class="lk"><b>VIZIO</b><span class="fin">Finance</span></div>
     </div>
     <div class="sub">Configurador de Instância · Gerenciador de Financiamento</div>
   </div>

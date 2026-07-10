@@ -18,7 +18,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js" crossorigin>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+/* Aponta o worker do pdf.js JÁ no carregamento. Sem isso, o pdf.js cai no
+   "fake worker" e processa o PDF na thread principal — o que CONGELA a aba. */
+(function(){ try{
+  if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}catch(e){} })();
+</script>
 <script src="dados.js"></script>
 <style>
 :root{
@@ -277,8 +285,9 @@ const INSTANCIA = CFG.instancia || 'Meu Apê 203 — Dom Pedro I';
 const PROP_LABEL= CFG.propLabel || 'Proprietária';
 const AUTH_URL  = CFG.authUrl   || '';
 /* ===== Controle de versão ===== */
-const APP_VERSION='1.7.0';
+const APP_VERSION='1.8.0';
 const CHANGELOG=[
+  {v:'1.8.0',d:'10/07/2026',itens:['Importar PDF: o assistente não fecha mais ao clicar em Importar (era o que jogava você no Início)','Importar PDF: o leitor passa a rodar em worker — acabou o travamento ao abrir o seletor de arquivo','Simulador: agora funciona a partir da configuração (valor financiado, taxa e prazo), sem depender de parcelas já geradas','Simulador: quando não há financiamento configurado, mostra um convite para configurar em vez de uma tela zerada','Manual e Configurador com a identidade correta da Vizio Finance','Campo Valor financiado com prefixo R$, igual aos demais campos de valor']},
   {v:'1.7.0',d:'10/07/2026',itens:['Segurança: o acesso agora é verificado ANTES de abrir o sistema — autenticar › carregar perfil › conferir assinatura','O app não entra mais sozinho por sessão salva: e-mail e senha são pedidos a cada visita','Pagamento em atraso: 3 dias de carência com faixa de aviso; depois, acesso pausado','Criar conta e sessão persistida passaram a respeitar o mesmo portão','Se não for possível verificar a assinatura, o acesso fica suspenso (falha fechada)','Clientes: a lista passa a mostrar apenas contas do Vizio Finance']},
   {v:'1.6.0',d:'10/07/2026',itens:['Identidade Vizio Finance 100% fiel ao branding board: símbolo oficial (hexágono + seta) no login, menu, Início, rodapé e favicons/PWA','Lockup oficial VIZIO · FINANCE · "Seu gerenciador de financiamento" (versões vertical e horizontal)','Paleta do board (#2563EB · #60A5FA · #111827 · #9CA3AF · #F3F4F6) e Raleway nos pesos Regular/Medium/SemiBold','O cubo VIZIO segue como marca-mãe do ecossistema']},
   {v:'1.5.0',d:'07/07/2026',itens:['Marca-mãe VIZIO: símbolo do cubo empilhado (marca principal do ecossistema) no login, menu, Início e rodapé','AURA v2: mais intensa, com partículas mais vivas e reação ao movimento do mouse (parallax)','Início como superfície única: menu, topo e conteúdo sem costuras','Barras de rolagem invisíveis em todo o sistema']},
@@ -777,17 +786,38 @@ function simulate(saldo,taxa,parcela,aporteExtra,aporteUnico){
   }
   return {meses,juros,desemb};
 }
+/* O simulador não pode depender de parcelas já geradas: se o cronograma ainda
+   não existe, ele deriva tudo da CONFIGURAÇÃO (valor financiado, taxa a.a., prazo). */
 function simBase(){
   var fm=DADOS.finMeta||{}, fin=DADOS.fin||[];
-  var saldo=Number(fm.saldoAtual!=null?fm.saldoAtual:(fm.saldoInicial||0))||0;
+  var cfg=(DADOS._cfgMod&&DADOS._cfgMod.financiamento)||{};
+  var saldo=Number(fm.saldoAtual!=null?fm.saldoAtual:0)||0;
+  if(saldo<=0) saldo=Number(fm.saldoInicial||0)||Number(cfg.total||0)||0;
+
   var juros=Number(fm.jurosMensal||0)||0;
+  if(juros<=0 && Number(cfg.taxa)>0) juros=Math.pow(1+Number(cfg.taxa)/100,1/12)-1; // a.a. → a.m. efetiva
+
   var u=fin.find(function(e){return !e.quitado;});
   var parc=Number((u&&u.valor)||(fin[0]&&fin[0].valor)||0)||0;
+  if(parc<=0 && saldo>0 && Number(cfg.meses)>0){
+    var n=Number(cfg.meses);
+    if(String(cfg.tipo||'').toLowerCase()==='sac'){ parc=saldo/n + saldo*juros; }      // 1ª parcela SAC
+    else if(juros>0){ parc=saldo*juros/(1-Math.pow(1+juros,-n)); }                      // PRICE
+    else { parc=saldo/n; }
+  }
   var aporte=parc>0?Math.round(parc*0.15/10)*10:0;
   return {saldo:saldo,juros:juros,parcela:parc,aporteExtra:aporte,aporteUnico:0};
 }
 function renderSim(v){
   const sm=simBase();
+  if(!(sm.saldo>0)){                       // sem financiamento configurado: estado vazio explícito
+    v.innerHTML=`<div class="card" style="text-align:center;padding:38px 26px">
+      <h2 style="margin-bottom:6px">Configure seu financiamento para simular</h2>
+      <div class="cap" style="margin:0 auto 18px;max-width:460px">O simulador precisa do valor financiado, da taxa e do prazo. Assim que você preencher a configuração, ele mostra quanto um aporte mensal economiza de juros.</div>
+      <button class="chip on" onclick="if(window.WIZ)WIZ.open();else navigate('financiamento')">Configurar agora</button>
+    </div>${sig()}`;
+    return;
+  }
   v.innerHTML=`
     <div class="card"><h2>Simulador de amortização antecipada</h2><div class="cap">Edite os campos em azul. O modelo: parcela fixa mensal + juros sobre o saldo devedor (aproximação do contrato).</div>
       <div class="simmode" style="display:flex;gap:18px;margin:8px 0 6px;font-size:.86rem;color:var(--text);align-items:center"><b style="font-weight:700;color:var(--muted)">Modo:</b> <label style="cursor:pointer;display:inline-flex;gap:5px;align-items:center"><input type="radio" name="simModo" value="prazo" checked onchange="runSim()"> Reduzir prazo</label> <label style="cursor:pointer;display:inline-flex;gap:5px;align-items:center"><input type="radio" name="simModo" value="parcela" onchange="runSim()"> Reduzir parcela</label></div>
