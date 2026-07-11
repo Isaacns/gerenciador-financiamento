@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vizio Finance · v2 (preview)</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --blue:#2563EB;--blue-h:#3B82F6;--blue-d:#1D4ED8;--sky:#60A5FA;--blue-soft:#EAF1FE;
+  --ink:#0E1726;--graphite:#111827;--graphite2:#1F2937;
+  --bg:#F3F4F6;--surface:#fff;--text:#111827;--muted:#6B7280;--muted2:#9CA3AF;
+  --border:#E4E8EF;--border2:#EEF1F6;--row:#F7F9FC;
+  --ok:#16A34A;--ok-bg:#E7F6ED;--warn:#D97706;--warn-bg:#FBF1DC;--danger:#DC2626;--danger-bg:#FBEAEA;
+  --radius:12px;--radius-sm:8px;--shadow:0 1px 3px rgba(14,23,38,.06),0 1px 2px rgba(14,23,38,.04);
+  --shadow-lg:0 14px 36px rgba(14,23,38,.14);
+  --font:'Inter','Segoe UI',system-ui,sans-serif;--font-display:'Raleway','Inter',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+*{scrollbar-width:none;-ms-overflow-style:none} *::-webkit-scrollbar{width:0;height:0;display:none}
+body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;line-height:1.5}
+h1,h2,h3,.crumb,.home-title{font-family:var(--font-display);letter-spacing:-.01em}
+.fin-badge{font-family:var(--font-display);font-weight:600;font-size:.66rem;letter-spacing:.34em;text-indent:.34em;text-transform:uppercase;color:var(--blue)}
+.fin-tag{font-family:var(--font-display);font-weight:500;font-size:.56rem;letter-spacing:.17em;text-indent:.17em;text-transform:uppercase;color:var(--muted2)}
+.lockup-v{display:flex;flex-direction:column;align-items:center;gap:6px}
+.lockup-v img{height:58px}.lockup-v .wm{height:26px}
+.lockup-h{display:flex;align-items:center;gap:10px}.lockup-h img{height:30px}
+.lockup-h .lk{display:flex;flex-direction:column;align-items:flex-start;gap:1px}
+.wm{height:24px}
+@keyframes vzpulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0 rgba(37,99,235,0))}50%{transform:scale(1.06);filter:drop-shadow(0 0 10px rgba(37,99,235,.5))}}
+img.sym{animation:vzpulse 2.8s ease-in-out infinite;transform-origin:center}
+@media(prefers-reduced-motion:reduce){img.sym{animation:none}}
+.preview-flag{position:fixed;top:0;left:0;right:0;z-index:60;background:linear-gradient(90deg,#1D4ED8,#3B82F6);color:#fff;text-align:center;font:600 .74rem var(--font);padding:5px;letter-spacing:.02em}
+
+/* LOGIN */
+#login{position:fixed;inset:0;background:radial-gradient(120% 120% at 72% 8%,#1A2030 0%,#0B0E16 62%);display:flex;align-items:center;justify-content:center;padding:20px;z-index:100}
+.login-card{width:100%;max-width:392px;background:var(--surface);border-radius:18px;padding:34px 30px;box-shadow:var(--shadow-lg);text-align:center}
+.login-card h1{font-size:1.15rem;margin:14px 0 2px}
+.login-card .sb{font-size:.82rem;color:var(--muted);margin-bottom:18px}
+.field{text-align:left;margin-bottom:12px}
+.field label{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block;margin-bottom:5px}
+.field input,.field select{width:100%;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:11px 12px;font:inherit;font-size:.95rem;background:#fff}
+.field input:focus,.field select:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}
+.pwrap{position:relative}.pwrap .eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:0;cursor:pointer;color:var(--muted);padding:6px}
+.btn{width:100%;background:var(--blue);color:#fff;border:0;padding:12px;border-radius:var(--radius-sm);font-weight:700;font-size:.95rem;cursor:pointer}
+.btn:hover{background:var(--blue-h)} .btn.ghost{background:transparent;color:var(--blue);border:1.5px solid var(--border)}
+.btn.sm{width:auto;padding:8px 14px;font-size:.82rem}
+.err{color:var(--danger);font-size:.82rem;min-height:1.1em;margin:4px 0}
+.login-tag{margin-top:16px;font-size:.72rem;color:var(--muted2)}
+
+/* APP */
+#app{min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;position:sticky;top:0;z-index:20}
+.topbar .who{font-size:.82rem;color:var(--muted);text-align:right}
+.topbar .who b{display:block;color:var(--text);font-size:.9rem}
+.main{flex:1;max-width:1120px;width:100%;margin:0 auto;padding:22px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow);margin-bottom:18px}
+.cap{color:var(--muted);font-size:.86rem;margin-top:2px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--blue)}
+.kpi.green::before{background:var(--ok)} .kpi.warn::before{background:var(--warn)}
+.kpi .val{font-size:1.34rem;font-weight:800;font-variant-numeric:tabular-nums}
+.kpi .lbl{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--border)}
+td{padding:9px 10px;border-bottom:1px solid var(--border2);font-variant-numeric:tabular-nums}
+tr:hover td{background:var(--row)}
+.num{text-align:right}
+.badge{font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px}
+.badge.pago{background:var(--ok-bg);color:var(--ok)} .badge.vencer{background:var(--warn-bg);color:var(--warn)}
+.chip{font-size:.8rem;padding:7px 13px;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--muted);font-weight:600;cursor:pointer}
+.chip.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.moneyfld{display:flex;border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.moneyfld:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}
+.moneyfld .pre{background:#F3F5F9;color:#667085;font-weight:700;font-size:.9rem;display:flex;align-items:center;padding:0 12px;border-right:1px solid var(--border)}
+.moneyfld input{flex:1;border:0!important;box-shadow:none!important;text-align:right;font-variant-numeric:tabular-nums;padding:10px 12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spread{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+/* WIZARD */
+#wiz{position:fixed;inset:0;background:#0B0E16;z-index:90;overflow:auto;display:none}
+#wiz.on{display:block}
+.wz-top{background:radial-gradient(120% 120% at 80% 0%,#1F2937,#0B0E16);color:#fff;padding:20px 24px}
+.wz-lg{display:flex;align-items:center;gap:10px}.wz-lg img{width:28px;height:28px}
+.wz-lg .wm{height:20px}
+.wz-steps{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.wz-step{font-size:.72rem;font-weight:600;color:#8A93A8;background:#141826;border:1px solid #222a3d;padding:5px 11px;border-radius:999px}
+.wz-step.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.wz-step.done{color:#5AA0FF;border-color:#284067}
+.wz-body{max-width:720px;margin:0 auto;padding:26px 20px 120px}
+.wz-body .card{background:#141826;border-color:#222a3d;color:#D2D8E4}
+.wz-body h2{color:#fff}.wz-body .cap{color:#8A93A8}
+.wz-body label{color:#B7C0D0}
+.wz-body input,.wz-body select{background:#0E1420;border-color:#2a3346;color:#fff}
+.wz-body .moneyfld{border-color:#2a3346}.wz-body .moneyfld .pre{background:#0A0F18;color:#8A93A8;border-color:#2a3346}
+.wz-body .moneyfld input{background:#0E1420}
+.tipos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.tipo{background:#141826;border:1.5px solid #222a3d;border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;transition:.15s;color:#D2D8E4}
+.tipo:hover,.tipo.sel{border-color:var(--blue);background:#171D2E;transform:translateY(-2px)}
+.tipo .ic{font-size:1.5rem}.tipo .nm{font-size:.82rem;font-weight:600;margin-top:6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.grid2,.kpis{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}}
+.wz-foot{position:fixed;left:0;right:0;bottom:0;background:#0E1420;border-top:1px solid #222a3d;padding:14px 20px;display:flex;justify-content:center;gap:12px;z-index:2}
+.wz-foot .inner{max-width:720px;width:100%;display:flex;justify-content:space-between;gap:12px}
+.plano-item{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#0E1420;border:1px solid #222a3d;border-radius:10px;padding:11px 13px;margin-bottom:9px}
+.plano-item .x{background:none;border:0;color:#8A93A8;cursor:pointer;font-size:1.1rem}
+.link{background:none;border:0;color:var(--sky);cursor:pointer;font-weight:600;font-size:.86rem}
+.ovl{position:fixed;inset:0;background:rgba(9,13,22,.66);z-index:210;display:flex;align-items:center;justify-content:center;padding:20px}
+.ovl .box{background:#fff;color:var(--text);border-radius:16px;max-width:520px;width:100%;padding:24px 26px;box-shadow:var(--shadow-lg);max-height:86vh;overflow:auto}
+.ovl.dark .box{background:#141826;color:#D2D8E4;border:1px solid #222a3d}
+.ovl.dark label{color:#B7C0D0}.ovl.dark input,.ovl.dark select{background:#0E1420;border-color:#2a3346;color:#fff}
+.hidden{display:none!important}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#10141F;color:#fff;padding:11px 18px;border-radius:10px;font-size:.86rem;z-index:400;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.toast.ok{background:#15803D}.toast.warn{background:#9A5B0E}.toast.danger{background:#A32D2D}
+</style>
+</head>
+<body>
+<div class="preview-flag">PREVIEW · Vizio Finance v2 (núcleo genérico) — ambiente de teste, não afeta o sistema no ar</div>
+
+<!-- LOGIN -->
+<div id="login">
+  <form class="login-card" onsubmit="return APP.login(event)">
+    <div class="lockup-v"><img class="sym" src="vizio-symbol-dark.png" alt="Vizio Finance"><img class="wm" src="vizio-wordmark-dark.png" alt="VIZIO"><span class="fin-badge">Finance</span><span class="fin-tag">Seu gerenciador de financiamento</span></div>
+    <h1>Gerenciador de Financiamento</h1>
+    <div class="sb">Acesse para gerenciar seus contratos</div>
+    <div class="err" id="lgErr"></div>
+    <div class="field"><label>E-mail</label><input id="lgEmail" type="email" autocomplete="username" placeholder="voce@email.com"></div>
+    <div class="field"><label>Senha</label><div class="pwrap" style="position:relative"><input id="lgPass" type="password" autocomplete="current-password" placeholder="••••••••"><button type="button" class="eye" onclick="APP.togglePass('lgPass',this)">👁</button></div></div>
+    <button class="btn" type="submit">Entrar</button>
+    <div class="login-tag">Sua planilha virou software · Vizio Finance · um produto INPERSON</div>
+  </form>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <div class="topbar">
+    <div class="lockup-h"><img class="sym" src="vizio-symbol-dark.png" alt="Vizio Finance"><div class="lk"><img class="wm" src="vizio-wordmark-dark.png" alt="VIZIO"><span class="fin-badge">Finance</span></div></div>
+    <div class="row">
+      <div class="who"><b id="uName">—</b><span id="uEmail"></span></div>
+      <button class="chip" onclick="APP.logout()">Sair</button>
+    </div>
+  </div>
+  <div class="main" id="view"></div>
+</div>
+
+<!-- WIZARD -->
+<div id="wiz">
+  <div class="wz-top">
+    <div class="wz-lg"><img class="sym" src="vizio-symbol-light.png" alt="Vizio Finance"><div class="lk"><span class="wm" style="font-family:var(--font-display);font-weight:400;letter-spacing:.24em;font-size:.85rem;color:#fff">VIZIO</span></div><span class="fin-badge" style="margin-left:2px">Finance</span></div>
+    <div class="wz-steps" id="wzSteps"></div>
+  </div>
+  <div class="wz-body" id="wzBody"></div>
+  <div class="wz-foot"><div class="inner">
+    <button class="btn ghost sm" id="wzBack" onclick="WIZ.back()">← Voltar</button>
+    <button class="btn sm" id="wzNext" onclick="WIZ.next()">Próximo →</button>
+  </div></div>
+</div>
+
+<script src="app-v2.js"></script>
+</body>
+</html>
