@@ -1,113 +1,205 @@
 /* =========================================================================
-   MODO AURA — VIZIO (ambiente vivo: brilho que respira + partículas + mouse)
-   v2.1 — mais movimento: respiração mais rápida, mais partículas e mais vivas,
-   parallax do mouse mais forte. Fiel ao studio/painel.html (@keyframes breathe).
-   Auto-contido: window.AURA. Toggle persistente (localStorage vz_aura_on).
-   Seletores em superset: Financiamento (.side/.main/.login-card) e Consórcio
-   (#login>.box, #app aside/main, cockpit, portal .wrap).
-   ========================================================================= */
-(function(){
-  'use strict';
-  if(window.__AURA_INIT__)return; window.__AURA_INIT__=1;
-  function accentHex(){
-    var v=(window.VZ_ACCENT)|| (getComputedStyle(document.documentElement).getPropertyValue('--blue')||'').trim() || '#2563EB';
-    return v.charAt(0)==='#'?v:'#2563EB';
-  }
-  function rgb(h){ h=h.replace('#',''); if(h.length===3)h=h.split('').map(function(c){return c+c;}).join(''); var n=parseInt(h,16); return [(n>>16)&255,(n>>8)&255,n&255]; }
-  var HEX=accentHex(), RGB=rgb(HEX), R=RGB.join(',');
-  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var KEY='vz_aura_on';
-  function on(){ try{return localStorage.getItem(KEY)!=='0';}catch(e){return true;} }
+   MODO AURA — VIZIO · v3 "LUZ DA MARCA"
+   Traduz o vocabulário luminoso do símbolo oficial (cubo de vidro) para a
+   página inteira: feixes laterais, poça de luz no chão, brilho que respira,
+   poeira luminosa e parallax pelo cursor.
 
-  /* CSS — gradientes fortes + respiração rápida e ampla */
-  var css=document.createElement('style'); css.id='auraCSS'; css.textContent=
-    '.vz-aura{position:absolute;inset:0;z-index:0;pointer-events:none;background:'+
-      'radial-gradient(58vw 58vw at 16% -8%,rgba('+R+',.33),transparent 60%),'+
-      'radial-gradient(52vw 52vw at 112% 8%,rgba(124,58,237,.27),transparent 60%),'+
-      'radial-gradient(62vw 62vw at 50% 122%,rgba('+R+',.18),transparent 62%);'+
-      'animation:vzbreathe 6s ease-in-out infinite}'+
-    '.vz-afix{position:fixed;inset:-10%;z-index:0;pointer-events:none;will-change:transform;transition:transform .1s linear}'+
-    '.vz-afix .vz-aura{mix-blend-mode:screen;opacity:.9}'+
-    '@keyframes vzbreathe{0%,100%{opacity:.6;transform:scale(1) translateY(0)}50%{opacity:1;transform:scale(1.09) translateY(-2%)}}'+
-    '.vz-parts{position:absolute;inset:0;z-index:0;pointer-events:none}'+
-    '.vz-afix .vz-parts{mix-blend-mode:screen;opacity:.85}'+
-    '.vz-aura-off .vz-aura,.vz-aura-off .vz-parts,.vz-aura-off .vz-afix{display:none!important}'+
-    /* garante o conteúdo acima do aura (superset de seletores dos apps) */
-    '#login>.login-card,#login>.box,#login>.card{position:relative;z-index:2}'+
-    '#app{position:relative}'+
-    '#app>.side,#app>.main,#app>aside,#app>main{position:relative;z-index:1}'+
-    '#app .side>*,#app aside>*{position:relative;z-index:1}'+
-    '.wrap{position:relative;z-index:1}'+
-    '#vzAuraBtn{position:fixed;right:14px;bottom:64px;z-index:120;background:rgba(17,24,39,.82);color:#fff;border:1px solid rgba(255,255,255,.16);border-radius:99px;padding:8px 13px;font:600 .76rem/1 Inter,system-ui,sans-serif;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;gap:6px;align-items:center;transition:.2s}'+
-    '#vzAuraBtn:hover{border-color:'+HEX+'}'+
-    '@media print{.vz-aura,.vz-parts,.vz-afix,#vzAuraBtn{display:none!important}}';
+   Sempre ativo (sem botão). Respeita prefers-reduced-motion: mantém a luz,
+   remove o movimento. Auto-contido: window.AURA.
+
+   Seletores em superset: Studio (#gate>.gate-inner, .wrap), Financiamento
+   (.side/.main/.login-card), Consórcio (#login>.box, #app aside/main).
+   ========================================================================= */
+(function () {
+  'use strict';
+  if (window.__AURA_INIT__) return;
+  window.__AURA_INIT__ = 1;
+
+  /* ---------- cor de acento ---------- */
+  function accentHex() {
+    var v = window.VZ_ACCENT ||
+      (getComputedStyle(document.documentElement).getPropertyValue('--blue') || '').trim() ||
+      '#1C64F0';
+    return v.charAt(0) === '#' ? v : '#1C64F0';
+  }
+  function rgb(h) {
+    h = h.replace('#', '');
+    if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+    var n = parseInt(h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  var HEX = accentHex();
+  var R = rgb(HEX).join(',');          // azul da marca
+  var RL = rgb('#5AA0FF').join(',');   // brilho (topo do gradiente do símbolo)
+
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- CSS ---------- */
+  var css = document.createElement('style');
+  css.id = 'auraCSS';
+  css.textContent = [
+    /* camada fixa que carrega toda a luz; sofre o parallax */
+    '.vz-afix{position:fixed;inset:-12%;z-index:0;pointer-events:none;',
+    'will-change:transform;transition:transform .12s linear}',
+
+    /* brilho ambiente que respira — o "ar" em volta do cubo */
+    '.vz-glow{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;background:',
+    'radial-gradient(46vw 46vw at 50% 34%,rgba(' + R + ',.30),transparent 62%),',
+    'radial-gradient(60vw 44vw at 12% -6%,rgba(' + R + ',.16),transparent 66%),',
+    'radial-gradient(52vw 40vw at 106% 4%,rgba(' + RL + ',.10),transparent 64%);',
+    'animation:vzBreathe 7s ease-in-out infinite}',
+    '@keyframes vzBreathe{0%,100%{opacity:.62;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}',
+
+    /* poça de luz no chão — o pedestal do render */
+    '.vz-floor{position:absolute;left:50%;bottom:-14%;width:120vw;height:52vh;',
+    'transform:translateX(-50%);pointer-events:none;mix-blend-mode:screen;',
+    'background:radial-gradient(50% 50% at 50% 50%,rgba(' + R + ',.26),rgba(' + R + ',.07) 45%,transparent 72%);',
+    'filter:blur(12px);animation:vzFloor 9s ease-in-out infinite}',
+    '@keyframes vzFloor{0%,100%{opacity:.55;transform:translateX(-50%) scaleY(1)}',
+    '50%{opacity:.95;transform:translateX(-50%) scaleY(1.12)}}',
+
+    /* feixes laterais — os dois raios que cortam a arte */
+    '.vz-ray{position:absolute;top:44%;height:2px;pointer-events:none;mix-blend-mode:screen;',
+    'filter:blur(1.4px);opacity:0}',
+    '.vz-ray i{display:block;height:100%;border-radius:99px}',
+    '.vz-ray.l{left:-6%;width:52%;transform:rotate(-3.2deg);animation:vzRayL 6s ease-in-out infinite}',
+    '.vz-ray.r{right:-6%;width:52%;transform:rotate(3.2deg);animation:vzRayR 6s ease-in-out infinite .9s}',
+    '.vz-ray.l i{background:linear-gradient(90deg,transparent,rgba(' + R + ',.55) 62%,rgba(' + RL + ',.95))}',
+    '.vz-ray.r i{background:linear-gradient(270deg,transparent,rgba(' + R + ',.55) 62%,rgba(' + RL + ',.95))}',
+    '@keyframes vzRayL{0%,100%{opacity:.18;transform:rotate(-3.2deg) translateX(-2%)}',
+    '50%{opacity:.85;transform:rotate(-3.2deg) translateX(0)}}',
+    '@keyframes vzRayR{0%,100%{opacity:.18;transform:rotate(3.2deg) translateX(2%)}',
+    '50%{opacity:.85;transform:rotate(3.2deg) translateX(0)}}',
+
+    /* poeira luminosa */
+    '.vz-parts{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;opacity:.85}',
+
+    /* o símbolo já vem com alfa limpo (sem véu de fundo); o glow fica no CSS
+       da página, para o cubo pertencer à cena em vez de ficar colado nela. */
+
+    /* conteúdo sempre acima da luz (superset dos apps) */
+    '#login>.login-card,#login>.box,#login>.card{position:relative;z-index:2}',
+    '#gate>.gate-inner{position:relative;z-index:2}',
+    '#app{position:relative}',
+    '#app>.side,#app>.main,#app>aside,#app>main{position:relative;z-index:1}',
+    '#app .side>*,#app aside>*{position:relative;z-index:1}',
+    '.wrap{position:relative;z-index:1}',
+
+    /* sem movimento: a luz fica, a animação não */
+    '@media (prefers-reduced-motion: reduce){',
+    '.vz-glow,.vz-floor,.vz-ray{animation:none!important}',
+    '.vz-ray{opacity:.5}.vz-afix{transition:none}}',
+
+    '@media print{.vz-afix{display:none!important}}'
+  ].join('');
   document.head.appendChild(css);
 
-  /* ---- estado do mouse (parallax) ---- */
-  var mx=0,my=0,cmx=0,cmy=0;
-  addEventListener('pointermove',function(e){ mx=(e.clientX/innerWidth-.5)*2; my=(e.clientY/innerHeight-.5)*2; },{passive:true});
-  addEventListener('deviceorientation',function(e){ if(e.gamma!=null){ mx=Math.max(-1,Math.min(1,e.gamma/35)); my=Math.max(-1,Math.min(1,(e.beta-45)/35)); } },{passive:true});
-
-  var canvases=[]; // {c, parallax}
-  function makeAura(){ var d=document.createElement('div'); d.className='vz-aura'; return d; }
-  function makeCanvas(parallax){ var c=document.createElement('canvas'); c.className='vz-parts'; canvases.push({c:c,parallax:!!parallax}); return c; }
-  function inject(container){
-    if(!container)return;
-    container.insertBefore(makeCanvas(false), container.firstChild);
-    container.insertBefore(makeAura(), container.firstChild);
-  }
-
-  function particlesFor(item){
-    var canvas=item.c, parallax=item.parallax, ctx=canvas.getContext('2d'), parts=[], raf=0;
-    function size(){ var r=canvas.getBoundingClientRect(); canvas.width=Math.max(1,r.width||innerWidth); canvas.height=Math.max(1,r.height||innerHeight); }
-    function seed(){ parts=[]; var n=Math.round((canvas.width*canvas.height)/18000); n=Math.max(38,Math.min(120,n));
-      for(var i=0;i<n;i++)parts.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*2.2+.7,vx:(Math.random()-.5)*.5,vy:(Math.random()-.5)*.5,a:Math.random()*.55+.3,z:Math.random()*18+6}); }
-    function loop(){
-      if(!on()){raf=0;return;}
-      cmx+=(mx-cmx)*.07; cmy+=(my-cmy)*.07;
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      var ox=parallax?cmx:0, oy=parallax?cmy:0;
-      for(var i=0;i<parts.length;i++){var p=parts[i];
-        p.x+=p.vx;p.y+=p.vy;
-        if(p.x<-20)p.x=canvas.width+20;if(p.x>canvas.width+20)p.x=-20;if(p.y<-20)p.y=canvas.height+20;if(p.y>canvas.height+20)p.y=-20;
-        var dx=p.x+ox*p.z, dy=p.y+oy*p.z;
-        ctx.beginPath();ctx.arc(dx,dy,p.r,0,6.283);ctx.fillStyle='rgba('+R+','+p.a+')';ctx.fill();
-        if(p.r>1.4){ ctx.beginPath();ctx.arc(dx,dy,p.r*2.6,0,6.283);ctx.fillStyle='rgba('+R+','+(p.a*.16)+')';ctx.fill(); }
-      }
-      raf=requestAnimationFrame(loop);
+  /* ---------- parallax do cursor ---------- */
+  var mx = 0, my = 0, cmx = 0, cmy = 0;
+  addEventListener('pointermove', function (e) {
+    mx = (e.clientX / innerWidth - .5) * 2;
+    my = (e.clientY / innerHeight - .5) * 2;
+  }, { passive: true });
+  addEventListener('deviceorientation', function (e) {
+    if (e.gamma != null) {
+      mx = Math.max(-1, Math.min(1, e.gamma / 35));
+      my = Math.max(-1, Math.min(1, (e.beta - 45) / 35));
     }
-    function start(){ if(reduce||!on())return; size(); seed(); if(!raf)loop(); }
-    addEventListener('resize',function(){ size(); seed(); });
-    return {start:start};
+  }, { passive: true });
+
+  /* ---------- poeira luminosa ---------- */
+  function particles(canvas) {
+    var ctx = canvas.getContext('2d'), parts = [], raf = 0;
+
+    function size() {
+      canvas.width = Math.max(1, innerWidth * 1.24);
+      canvas.height = Math.max(1, innerHeight * 1.24);
+    }
+    function seed() {
+      var n = Math.round((canvas.width * canvas.height) / 20000);
+      n = Math.max(34, Math.min(110, n));
+      parts = [];
+      for (var i = 0; i < n; i++) {
+        parts.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: Math.random() * 1.9 + .5,
+          vx: (Math.random() - .5) * .22,
+          vy: -(Math.random() * .30 + .05),   // sobe, como brasa de luz
+          a: Math.random() * .5 + .22,
+          z: Math.random() * 16 + 5,
+          ph: Math.random() * 6.283
+        });
+      }
+    }
+    function loop(t) {
+      cmx += (mx - cmx) * .06;
+      cmy += (my - cmy) * .06;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i];
+        p.x += p.vx; p.y += p.vy;
+        if (p.y < -20) { p.y = canvas.height + 20; p.x = Math.random() * canvas.width; }
+        if (p.x < -20) p.x = canvas.width + 20;
+        if (p.x > canvas.width + 20) p.x = -20;
+
+        var tw = .65 + .35 * Math.sin(t / 900 + p.ph);   // cintila
+        var dx = p.x + cmx * p.z, dy = p.y + cmy * p.z;
+
+        ctx.beginPath(); ctx.arc(dx, dy, p.r, 0, 6.283);
+        ctx.fillStyle = 'rgba(' + RL + ',' + (p.a * tw) + ')';
+        ctx.fill();
+
+        if (p.r > 1.2) {
+          ctx.beginPath(); ctx.arc(dx, dy, p.r * 3.2, 0, 6.283);
+          ctx.fillStyle = 'rgba(' + R + ',' + (p.a * tw * .13) + ')';
+          ctx.fill();
+        }
+      }
+      raf = requestAnimationFrame(loop);
+    }
+
+    size(); seed();
+    addEventListener('resize', function () { size(); seed(); });
+    if (!reduce && !raf) raf = requestAnimationFrame(loop);
+    return { stop: function () { if (raf) cancelAnimationFrame(raf), raf = 0; } };
   }
 
-  var btn=document.createElement('button'); btn.id='vzAuraBtn'; btn.type='button'; btn.innerHTML='✨ AURA';
-  function apply(){ document.body.classList.toggle('vz-aura-off', !on()); btn.style.opacity=on()?'1':'.5'; }
-  var starts=[], afix=null;
-  btn.onclick=function(){ try{localStorage.setItem(KEY, on()?'0':'1');}catch(e){} apply(); starts.forEach(function(s){s.start();}); if(afix)tickFix(); };
-
-  function tickFix(){
-    if(!afix||!on()||reduce)return;
-    afix.style.transform='translate('+(cmx*40)+'px,'+(cmy*34)+'px)';
+  /* ---------- parallax da camada ---------- */
+  var afix = null;
+  function tickFix() {
+    if (!afix || reduce) return;
+    afix.style.transform = 'translate(' + (cmx * 34) + 'px,' + (cmy * 28) + 'px)';
     requestAnimationFrame(tickFix);
   }
 
-  function mount(){
-    if(!document.body)return;
-    /* camada fixa (screen) por toda a tela — o coração do efeito, com parallax */
-    afix=document.createElement('div'); afix.className='vz-afix';
-    afix.appendChild(makeAura());
-    afix.appendChild(makeCanvas(true));
+  function el(cls, html) {
+    var d = document.createElement('div');
+    d.className = cls;
+    if (html) d.innerHTML = html;
+    return d;
+  }
+
+  function mount() {
+    if (!document.body) return;
+
+    afix = el('vz-afix');
+    afix.appendChild(el('vz-glow'));
+    afix.appendChild(el('vz-ray l', '<i></i>'));
+    afix.appendChild(el('vz-ray r', '<i></i>'));
+    afix.appendChild(el('vz-floor'));
+
+    var canvas = document.createElement('canvas');
+    canvas.className = 'vz-parts';
+    afix.appendChild(canvas);
+
     document.body.insertBefore(afix, document.body.firstChild);
-    /* login e barra lateral (fundos opacos) recebem aura própria */
-    inject(document.getElementById('login'));
-    inject(document.querySelector('#app .side') || document.querySelector('#app aside'));
-    document.body.appendChild(btn);
-    canvases.forEach(function(it){ starts.push(particlesFor(it)); });
-    apply();
-    starts.forEach(function(s){ s.start(); });
+    particles(canvas);
     tickFix();
   }
-  window.AURA={ toggle:function(){ btn.click(); }, on:on };
-  if(document.readyState!=='loading')mount(); else document.addEventListener('DOMContentLoaded',mount);
+
+  window.AURA = { version: 3, always: true };
+
+  if (document.readyState !== 'loading') mount();
+  else document.addEventListener('DOMContentLoaded', mount);
 })();
