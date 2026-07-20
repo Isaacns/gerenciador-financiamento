@@ -299,8 +299,9 @@ const AUTH_URL  = CFG.authUrl   || '';
 /* §14.2: NUNCA const — vários <script> clássicos dividem o mesmo escopo e uma
    segunda declaração derrubaria o arquivo inteiro. Uma versão só, uma fonte só:
    é esta que o push compara e a que a tela "Novidades" exibe. */
-window.APP_VERSION='1.10.0';
+window.APP_VERSION='1.10.1';
 const CHANGELOG=[
+  {v:'1.10.1',d:'20/07/2026',itens:['Correção no aviso de nova versão: em aba deixada em segundo plano ele era criado mas podia não aparecer — agora aparece sempre']},
   {v:'1.10.0',d:'20/07/2026',itens:['Novo módulo Agenda: sua semana à vista, dividida em Manhã, Tarde e Noite — o período de agora já abre destacado','Arraste a atividade para outro dia ou período (ou use o botão Mover, se preferir); ao mudar de período o horário se ajusta sozinho','Quadro de tarefas Pendente → Em andamento → Concluída, com o tempo de cada etapa cronometrado e histórico de movimentações','Tudo fica salvo na sua conta, não no aparelho — a pauta acompanha você em qualquer dispositivo']},
   {v:'1.9.0',d:'20/07/2026',itens:['Push de atualização: quando publicamos uma versão nova, o sistema avisa sozinho com um convite para atualizar — mesmo com a aba aberta há horas em segundo plano','O aviso aparece também na tela de login','Atualizar limpa a sessão temporária e recarrega já na versão nova']},
   {v:'1.8.0',d:'10/07/2026',itens:['Importar PDF: o assistente não fecha mais ao clicar em Importar (era o que jogava você no Início)','Importar PDF: o leitor passa a rodar em worker — acabou o travamento ao abrir o seletor de arquivo','Simulador: agora funciona a partir da configuração (valor financiado, taxa e prazo), sem depender de parcelas já geradas','Simulador: quando não há financiamento configurado, mostra um convite para configurar em vez de uma tela zerada','Manual e Configurador com a identidade correta da Vizio Finance','Campo Valor financiado com prefixo R$, igual aos demais campos de valor']},
@@ -964,7 +965,13 @@ if(DADOS._cfg && DADOS._cfg.supabaseUrl){
       location.replace(location.pathname+'?v='+Date.now()+location.hash);
     };
     document.body.appendChild(b);
-    requestAnimationFrame(function(){ b.style.opacity='1'; b.style.transform='translateX(-50%) translateY(0)'; });
+    /* §3.6: requestAnimationFrame NÃO roda em aba de segundo plano — que é
+       justamente o caso que este push existe para cobrir. Sem o setTimeout,
+       o banner nasce e fica INVISÍVEL (opacity:0) e o teste "passa" se só
+       conferir que o elemento existe. Revelar pelos dois caminhos é idempotente. */
+    var mostrar=function(){ b.style.opacity='1'; b.style.transform='translateX(-50%) translateY(0)'; };
+    requestAnimationFrame(mostrar);   /* aba visível: entra no próximo quadro */
+    setTimeout(mostrar,60);           /* aba oculta: o timer roda mesmo assim */
   }
 
   /* rota 1 — service worker (este sistema tem sw.js) */
