@@ -299,8 +299,9 @@ const AUTH_URL  = CFG.authUrl   || '';
 /* §14.2: NUNCA const — vários <script> clássicos dividem o mesmo escopo e uma
    segunda declaração derrubaria o arquivo inteiro. Uma versão só, uma fonte só:
    é esta que o push compara e a que a tela "Novidades" exibe. */
-window.APP_VERSION='1.10.1';
+window.APP_VERSION='1.11.0';
 const CHANGELOG=[
+  {v:'1.11.0',d:'20/07/2026',itens:['Novo módulo Bem-estar & Pausas: lembretes gentis para beber água, alongar, descansar a vista e respirar','Os avisos aparecem discretos no canto — não travam a tela e dá para adiar 5 minutos','Você escolhe quais lembretes quer e de quanto em quanto tempo; dá para testar na hora','As preferências ficam salvas neste aparelho']},
   {v:'1.10.1',d:'20/07/2026',itens:['Correção no aviso de nova versão: em aba deixada em segundo plano ele era criado mas podia não aparecer — agora aparece sempre']},
   {v:'1.10.0',d:'20/07/2026',itens:['Novo módulo Agenda: sua semana à vista, dividida em Manhã, Tarde e Noite — o período de agora já abre destacado','Arraste a atividade para outro dia ou período (ou use o botão Mover, se preferir); ao mudar de período o horário se ajusta sozinho','Quadro de tarefas Pendente → Em andamento → Concluída, com o tempo de cada etapa cronometrado e histórico de movimentações','Tudo fica salvo na sua conta, não no aparelho — a pauta acompanha você em qualquer dispositivo']},
   {v:'1.9.0',d:'20/07/2026',itens:['Push de atualização: quando publicamos uma versão nova, o sistema avisa sozinho com um convite para atualizar — mesmo com a aba aberta há horas em segundo plano','O aviso aparece também na tela de login','Atualizar limpa a sessão temporária e recarrega já na versão nova']},
@@ -398,6 +399,7 @@ function logout(){SESSION=null;try{sessionStorage.removeItem('vizio_fin_sess');}
 
 const IC={
   agenda:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 10h18M8 2v4M16 2v4M8 14h3M8 18h6"/>',
+  bemestar:'<path d="M12 21s-7-4.35-9.5-8.5C1 9 3 5.5 6.5 5.5c2 0 3.5 1.5 5.5 3 2-1.5 3.5-3 5.5-3C21 5.5 23 9 21.5 12.5 19 16.65 12 21 12 21z"/>',
   home:'<path d="M3 11l9-8 9 8M5 10v10h14V10"/>',
   visao:'<path d="M3 3v18h18M7 13l3-3 3 2 5-6"/>',
   entrada:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
@@ -420,6 +422,7 @@ const MODS=[
   {id:'financiamento',nome:'Financiamento',sub:'SAC · 420 parcelas',grp:'Etapas de pagamento',roles:['admin','proprietario'],ready:true,desc:'Saldo devedor e amortização do banco.'},
   {id:'simulador',nome:'Simulador',sub:'Amortização antecipada',grp:'Ferramentas',roles:['admin','proprietario'],ready:true,desc:'Simule aportes e veja a economia de juros.'},
   {id:'agenda',nome:'Agenda',sub:'Pauta do dia',grp:'Ferramentas',roles:['admin','proprietario'],ready:true,desc:'Organize suas atividades da semana e as tarefas do financiamento.'},
+  {id:'bemestar',nome:'Bem-estar & Pausas',sub:'Lembretes de saúde',grp:'Ferramentas',roles:['admin','proprietario'],ready:true,desc:'Pausas para hidratar, alongar, descansar a vista e respirar.'},
   {id:'assinatura',nome:'Assinatura',sub:'Plano e pagamento',grp:'Conta',roles:['admin','proprietario'],ready:true,desc:'Sua assinatura e pagamento.'},
   {id:'manual',nome:'Manual',sub:'Guia de uso',grp:'Ajuda',roles:['admin','proprietario'],ready:true,desc:'Guia ilustrado de uso do sistema.'},
   {id:'clientes',nome:'Clientes',sub:'Contratantes',grp:'Administração',roles:['admin'],adminOnly:true,ready:true,desc:'Lista e estado das contas dos clientes (somente admins).'},
@@ -439,8 +442,8 @@ const PERFIS={
 };
 const PERFIL=(CFG.perfil&&PERFIS[CFG.perfil])?CFG.perfil:'imovel_planta';
 const PERFIL_MODS=PERFIS[PERFIL].mods;
-/* §16: a Agenda é módulo padrão de TODOS os sistemas — logo, independe do perfil. */
-const CORE_MODS=['home','assinatura','clientes','configurador','manual','agenda'];
+/* §16 (Agenda) e §7 (Bem-estar) são módulos padrão de TODOS os sistemas — independem do perfil. */
+const CORE_MODS=['home','assinatura','clientes','configurador','manual','agenda','bemestar'];
 (function applyPerfilLabels(){var lb=(PERFIS[PERFIL]||{}).labels||{};MODS.forEach(function(m){var o=lb[m.id];if(o){if(o.nome)m.nome=o.nome;if(o.sub)m.sub=o.sub;}});})();
 const fmtBRL=n=>'R$ '+(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtBRL2=n=>'R$ '+(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -494,7 +497,7 @@ function navigate(id){
   document.getElementById('crumb').childNodes[0].nodeValue=m.nome;
   document.getElementById('crumbSub').textContent=m.sub||'';
   const v=document.getElementById('view');
-  ({home:renderHome,visao:renderVisao,entrada:renderEntrada,doc:renderDoc,obra:renderObra,financiamento:renderFin,simulador:renderSim,agenda:(window.renderAgenda||renderHome),configurador:renderConfigurador,clientes:renderClientes,assinatura:renderAssinatura,manual:renderManual}[id]||renderHome)(v);
+  ({home:renderHome,visao:renderVisao,entrada:renderEntrada,doc:renderDoc,obra:renderObra,financiamento:renderFin,simulador:renderSim,agenda:(window.renderAgenda||renderHome),bemestar:(window.renderBemestar||renderHome),configurador:renderConfigurador,clientes:renderClientes,assinatura:renderAssinatura,manual:renderManual}[id]||renderHome)(v);
   window.scrollTo(0,0);
 }
 function sig(){return `<div class="sig"><div class="by"><b>Gerenciador de Financiamento</b> <span>by</span> <img class="sym" src="vizio-symbol-dark.png"> <img class="wm" src="vizio-wordmark-dark.png"> <span class="fin-badge ghost">Finance</span> · Sua planilha virou software.</div><span>Dados: ${DADOS._meta.fonte} · ${DADOS._meta.gerado}</span></div>`;}
@@ -911,6 +914,7 @@ if(DADOS._cfg && DADOS._cfg.supabaseUrl){
 <script src="supabase-mode.js"></script>
 <script src="wizard.js"></script>
 <script src="app-agenda.js?v=1"></script>
+<script src="app-bemestar.js?v=1"></script>
 <script src="aura.js?v=3"></script>
 <!-- INPERSON/VIZIO · mostrar-ocultar senha (cobre campos dinamicos) -->
 <style>
