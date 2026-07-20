@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -12,7 +12,18 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Financiamento">
-<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+<script>
+/* Guarda de HTTPS com exceção de loopback (§3.4 do rollout) — sem a exceção,
+   é impossível testar o push num servidor local. */
+(function(){
+  var local=/^(localhost|127\.0\.0\.1|\[::1\]|::1)$/.test(location.hostname);
+  if(location.protocol==='http:' && !local){
+    location.replace('https://'+location.host+location.pathname+location.search+location.hash);
+  }
+})();
+/* O registro do service worker agora é feito pelo push (§14) no fim do body,
+   que precisa da referência do registration para o skipWaiting. */
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -285,8 +296,12 @@ const INSTANCIA = CFG.instancia || 'Meu Apê 203 — Dom Pedro I';
 const PROP_LABEL= CFG.propLabel || 'Proprietária';
 const AUTH_URL  = CFG.authUrl   || '';
 /* ===== Controle de versão ===== */
-const APP_VERSION='1.8.0';
+/* §14.2: NUNCA const — vários <script> clássicos dividem o mesmo escopo e uma
+   segunda declaração derrubaria o arquivo inteiro. Uma versão só, uma fonte só:
+   é esta que o push compara e a que a tela "Novidades" exibe. */
+window.APP_VERSION='1.9.0';
 const CHANGELOG=[
+  {v:'1.9.0',d:'20/07/2026',itens:['Push de atualização: quando publicamos uma versão nova, o sistema avisa sozinho com um convite para atualizar — mesmo com a aba aberta há horas em segundo plano','O aviso aparece também na tela de login','Atualizar limpa a sessão temporária e recarrega já na versão nova']},
   {v:'1.8.0',d:'10/07/2026',itens:['Importar PDF: o assistente não fecha mais ao clicar em Importar (era o que jogava você no Início)','Importar PDF: o leitor passa a rodar em worker — acabou o travamento ao abrir o seletor de arquivo','Simulador: agora funciona a partir da configuração (valor financiado, taxa e prazo), sem depender de parcelas já geradas','Simulador: quando não há financiamento configurado, mostra um convite para configurar em vez de uma tela zerada','Manual e Configurador com a identidade correta da Vizio Finance','Campo Valor financiado com prefixo R$, igual aos demais campos de valor']},
   {v:'1.7.0',d:'10/07/2026',itens:['Segurança: o acesso agora é verificado ANTES de abrir o sistema — autenticar › carregar perfil › conferir assinatura','O app não entra mais sozinho por sessão salva: e-mail e senha são pedidos a cada visita','Pagamento em atraso: 3 dias de carência com faixa de aviso; depois, acesso pausado','Criar conta e sessão persistida passaram a respeitar o mesmo portão','Se não for possível verificar a assinatura, o acesso fica suspenso (falha fechada)','Clientes: a lista passa a mostrar apenas contas do Vizio Finance']},
   {v:'1.6.0',d:'10/07/2026',itens:['Identidade Vizio Finance 100% fiel ao branding board: símbolo oficial (hexágono + seta) no login, menu, Início, rodapé e favicons/PWA','Lockup oficial VIZIO · FINANCE · "Seu gerenciador de financiamento" (versões vertical e horizontal)','Paleta do board (#2563EB · #60A5FA · #111827 · #9CA3AF · #F3F4F6) e Raleway nos pesos Regular/Medium/SemiBold','O cubo VIZIO segue como marca-mãe do ecossistema']},
@@ -315,7 +330,7 @@ function applyCfg(){
     var t=document.getElementById('lgTitle'); if(t) t.textContent=PRODUTO;
     var s=document.getElementById('lgSub');   if(s) s.textContent=INSTANCIA+' · acesso restrito';
     var p=document.getElementById('sideProp');if(p) p.textContent='🏠 '+INSTANCIA;
-    var f=document.getElementById('sideFoot');if(f) f.innerHTML=PRODUTO+' · <a href="#" onclick="showChangelog();return false" title="Ver novidades" style="color:var(--sky);text-decoration:none;font-weight:600">v'+APP_VERSION+'</a>';
+    var f=document.getElementById('sideFoot');if(f) f.innerHTML=PRODUTO+' · <a href="#" onclick="showChangelog();return false" title="Ver novidades" style="color:var(--sky);text-decoration:none;font-weight:600">v'+window.APP_VERSION+'</a>';
     var h=document.getElementById('lgHint');
     if(h){
       if(AUTH_URL){ h.innerHTML='Acesso restrito · entre com seu usuário e senha.'; }
@@ -913,6 +928,77 @@ if(DADOS._cfg && DADOS._cfg.supabaseUrl){
   function scan(r){(r||document).querySelectorAll&&(r||document).querySelectorAll('input[type=password]').forEach(enhance);}
   if(document.readyState!=='loading')scan();else document.addEventListener('DOMContentLoaded',function(){scan();});
   new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes&&m.addedNodes.forEach(function(n){if(n.nodeType===1){if(n.matches&&n.matches('input[type=password]'))enhance(n);scan(n);}});});}).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
+<script>
+/* PUSH DE ATUALIZAÇÃO — padrão VIZIO §14.
+   Publicar não é entregar: entregue é quando o código novo roda no navegador do cliente.
+   SEM guard de document.hidden de propósito — aba em segundo plano é o caso a pegar.
+   A versão comparada é window.APP_VERSION, declarada uma única vez lá em cima. */
+(function(){
+  var avisou=false, checando=false, reg=null;
+
+  function avisarNovaVersao(){
+    if(avisou) return; avisou=true;
+    var b=document.createElement('button');
+    b.type='button'; b.id='vzUpdate';
+    b.innerHTML='✨ Uma versão novinha do seu sistema está pronta. <b>Atualizar agora</b>';
+    b.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(8px);'
+      +'z-index:9999;display:inline-flex;align-items:center;gap:10px;white-space:nowrap;'
+      +'padding:12px 18px;border:none;border-radius:14px;cursor:pointer;font:inherit;font-size:.9rem;'
+      +'color:#fff;font-weight:600;'
+      /* identidade do PRÓPRIO sistema (tokens lidos deste arquivo): --blue #2563EB → --blue-d #1D4ED8 */
+      +'background:linear-gradient(135deg,var(--blue,#2563EB),var(--blue-d,#1D4ED8));'
+      +'box-shadow:0 12px 30px -10px rgba(0,0,0,.55);opacity:0;'
+      +'transition:opacity .35s,transform .35s;max-width:92vw';
+    b.onclick=function(){
+      b.textContent='Atualizando…'; b.disabled=true;
+      try{ if(reg&&reg.waiting) reg.waiting.postMessage({type:'PULAR_ESPERA'}); }catch(_){}
+      try{ sessionStorage.clear(); }catch(_){}
+      location.replace(location.pathname+'?v='+Date.now()+location.hash);
+    };
+    document.body.appendChild(b);
+    requestAnimationFrame(function(){ b.style.opacity='1'; b.style.transform='translateX(-50%) translateY(0)'; });
+  }
+
+  /* rota 1 — service worker (este sistema tem sw.js) */
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',function(){
+      navigator.serviceWorker.register('sw.js').then(function(r){
+        reg=r;
+        if(r.waiting&&navigator.serviceWorker.controller) avisarNovaVersao();
+        r.addEventListener('updatefound',function(){
+          var novo=r.installing; if(!novo) return;
+          novo.addEventListener('statechange',function(){
+            if(novo.state==='installed'&&navigator.serviceWorker.controller) avisarNovaVersao();
+          });
+        });
+      }).catch(function(){});
+    });
+  }
+
+  /* rota 2 — APP_VERSION por rede. Pega o deploy que mexeu SÓ no index.html
+     (aí o sw.js não muda, o 'updatefound' não dispara e ninguém seria avisado). */
+  function checarVersao(){
+    if(checando||avisou) return; checando=true;
+    var base=location.href.replace(/[#?].*$/,'');
+    fetch(base+'?_v='+Date.now(),{cache:'no-store'})
+      .then(function(r){ return r.ok?r.text():null; })
+      .then(function(t){
+        if(!t) return;
+        var m=t.match(/APP_VERSION\s*=\s*'([^']+)'/);
+        if(m&&m[1]&&m[1]!==window.APP_VERSION) avisarNovaVersao();
+      })
+      .catch(function(){})
+      .then(function(){ checando=false; });
+  }
+  setTimeout(checarVersao,8000);
+  setInterval(checarVersao,10*60*1000);
+  document.addEventListener('visibilitychange',function(){
+    if(!document.hidden){ checarVersao(); if(reg) reg.update().catch(function(){}); }
+  });
+  window.addEventListener('online',function(){ if(reg) reg.update().catch(function(){}); });
 })();
 </script>
 </body>
