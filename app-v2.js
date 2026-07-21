@@ -152,7 +152,7 @@ function abrirPlano(pid){
       '<td class="num">'+fmtBRL(p.valor_previsto)+'</td>'+
       '<td class="num">'+(p.quitado?fmtBRL(p.valor_pago!=null?p.valor_pago:p.valor_previsto):"—")+'</td>'+
       '<td>'+(p.quitado?'<span class="badge pago">pago</span>':'<span class="badge vencer">a vencer</span>')+'</td>'+
-      '<td class="num"><button class="link" onclick="APP.togglePaga(\''+p.id+'\')">'+(p.quitado?"desmarcar":"marcar pago")+'</button></td></tr>';
+      '<td class="num" style="white-space:nowrap"><button class="link" onclick="APP.editarParcela(\''+p.id+'\')">editar</button> · <button class="link" onclick="APP.togglePaga(\''+p.id+'\')">'+(p.quitado?"desmarcar":"marcar pago")+'</button></td></tr>';
   }).join("");
   var body='<div class="box"><div class="spread" style="margin-bottom:10px"><div><h2 style="font-size:1.1rem">'+(PLANO_IC[pl.tipo]||"")+' '+esc(pl.nome)+'</h2><div class="cap">'+arr.length+' parcela(s)</div></div>'+
     '<button class="link" onclick="this.closest(\'.ovl\').remove()">✕ Fechar</button></div>'+
@@ -187,6 +187,39 @@ function addParcelaManual(pid){
       toast("Parcela adicionada","ok"); return carregar().then(function(){ var o=document.querySelector(".ovl"); if(o)o.remove(); abrirPlano(pid); });
     });
   },true);
+}
+/* Editar uma parcela existente. Em juros de obra, o valor é VARIÁVEL mês a mês —
+   por isso aqui também dá para ajustar a evolução (%) e o INCC de cada mês, que
+   ficam no meta da parcela. É o que torna o juros de obra editável de verdade. */
+function editarParcela(id){
+  var pid=Object.keys(PARCELAS).find(function(k){return PARCELAS[k].some(function(p){return p.id===id;});});
+  if(!pid)return;
+  var pl=PLANOS.find(function(p){return p.id===pid;});
+  var p=PARCELAS[pid].find(function(x){return x.id===id;});
+  var isObra=pl&&pl.tipo==="juros_obra";
+  var campos=[
+    {k:"numero",l:"Nº",t:"number",v:p.numero},
+    {k:"vencimento",l:"Vencimento",t:"date",v:p.vencimento?String(p.vencimento).slice(0,10):""},
+    {k:"valor_previsto",l:"Valor previsto",t:"money",v:p.valor_previsto}
+  ];
+  if(isObra){
+    campos.push({k:"evolucao",l:"Evolução da obra (%)",t:"number",v:(p.meta&&p.meta.evolucao!=null?p.meta.evolucao:"")});
+    campos.push({k:"incc",l:"INCC do mês (%)",t:"number",v:(p.meta&&p.meta.incc!=null?p.meta.incc:"")});
+  }
+  if(p.quitado) campos.push({k:"valor_pago",l:"Valor pago",t:"money",v:(p.valor_pago!=null?p.valor_pago:p.valor_previsto)});
+  formModal("Editar parcela",campos,function(d){
+    var upd={numero:Number(d.numero)||p.numero, vencimento:d.vencimento||null, valor_previsto:moneyNum(d.valor_previsto)};
+    if(p.quitado && d.valor_pago!=null) upd.valor_pago=moneyNum(d.valor_pago);
+    if(isObra){ var meta=Object.assign({},p.meta||{});
+      if(d.evolucao!=="") meta.evolucao=Number(d.evolucao); if(d.incc!=="") meta.incc=Number(d.incc);
+      upd.meta=meta;
+    }
+    return SB.from("vf_parcelas").update(upd).eq("id",id).then(function(r){
+      if(r.error){toast("Erro: "+r.error.message,"danger");return false;}
+      toast("Parcela atualizada","ok");
+      return carregar().then(function(){ var o=document.querySelector(".ovl"); if(o)o.remove(); abrirPlano(pid); });
+    });
+  });
 }
 function delPlano(pid){
   if(!confirm("Excluir este plano e todas as suas parcelas? Isso não pode ser desfeito."))return;
@@ -235,7 +268,7 @@ function formModal(title,fields,onSave,dark){
   };
 }
 window.APP={ login:login, logout:logout, togglePass:togglePass, abrirPlano:abrirPlano, togglePaga:togglePaga,
-  addParcelaManual:addParcelaManual, delPlano:delPlano, editarContrato:editarContrato };
+  addParcelaManual:addParcelaManual, editarParcela:editarParcela, delPlano:delPlano, editarContrato:editarContrato };
 /* hook de validação (preview): permite conferir o motor sem logar */
 window.__VF={ gerarParcelas:gerarParcelas, taxaMensal:taxaMensal, moneyNum:moneyNum };
 
