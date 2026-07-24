@@ -299,7 +299,7 @@ const AUTH_URL  = CFG.authUrl   || '';
 /* §14.2: NUNCA const — vários <script> clássicos dividem o mesmo escopo e uma
    segunda declaração derrubaria o arquivo inteiro. Uma versão só, uma fonte só:
    é esta que o push compara e a que a tela "Novidades" exibe. */
-window.APP_VERSION='1.11.0';
+window.APP_VERSION='1.11.1';
 const CHANGELOG=[
   {v:'1.11.0',d:'20/07/2026',itens:['Novo módulo Bem-estar & Pausas: lembretes gentis para beber água, alongar, descansar a vista e respirar','Os avisos aparecem discretos no canto — não travam a tela e dá para adiar 5 minutos','Você escolhe quais lembretes quer e de quanto em quanto tempo; dá para testar na hora','As preferências ficam salvas neste aparelho']},
   {v:'1.10.1',d:'20/07/2026',itens:['Correção no aviso de nova versão: em aba deixada em segundo plano ele era criado mas podia não aparecer — agora aparece sempre']},
@@ -450,6 +450,14 @@ const fmtBRL2=n=>'R$ '+(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,ma
 const fmtN=n=>Math.round(n||0).toLocaleString('pt-BR');
 const fmtPct=n=>(n*100).toFixed(1).replace('.',',')+'%';
 const dBR=s=>{if(!s||s==='—')return '—';const p=String(s).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s;};
+/* ===== Escape de HTML (padrão do Consórcio — cockpit.html §helpers) =====
+   Neutraliza dado de TERCEIROS (nome/e-mail/imóvel vindos do cadastro
+   self-service) antes de entrar em innerHTML. Corpo byte-idêntico ao esc()
+   do irmão Consórcio; nome `escHtml` (não `esc`) de propósito: app-bemestar.js
+   redefine um `esc` global mais fraco e carrega por último, então o `esc`
+   global em runtime só escaparia `<`. Este helper é auto-contido no inline
+   e não pode ser sobrescrito pelos módulos externos. */
+function escHtml(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 /* ===== Máscara de valor (R$) em todo o sistema ===== */
 function moneyNum(s){ if(s==null||s==='')return 0; s=String(s).replace(/[^\d.,-]/g,''); if(s.indexOf(',')>=0)s=s.replace(/\./g,'').replace(',','.'); else if(/^-?\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,''); const n=parseFloat(s); return isNaN(n)?0:n; }
 function moneyMaskLive(el){ const hadComma=el.value.indexOf(',')>=0; let v=el.value.replace(/[^\d,]/g,''); const parts=v.split(','); let intp=parts[0].replace(/^0+(?=\d)/,'').replace(/\B(?=(\d{3})+(?!\d))/g,'.'); if(intp==='')intp=(parts.length>1?'0':''); el.value = parts.length>1 ? intp+','+parts[1].slice(0,2) : intp+(hadComma?',':''); }
@@ -540,15 +548,15 @@ function carregarClientes(){
   var box=document.getElementById('clientesBox'); if(box)box.textContent='Carregando...';
   _cliFetch({action:'list'}).then(function(res){
     var b=document.getElementById('clientesBox'); if(!b)return;
-    if(!res.ok){ b.innerHTML='<span style="color:#DC2626">Erro: '+(res.error||'falha')+'</span>'; return; }
+    if(!res.ok){ b.innerHTML='<span style="color:#DC2626">Erro: '+escHtml(res.error||'falha')+'</span>'; return; }
     _CLI=res.clients||[];
     if(!_CLI.length){ b.innerHTML='Nenhum cliente ainda.'; return; }
     var rows=_CLI.map(function(c,i){ var et=c.counts||{};
       var st=c.is_admin?'<span class="badge pago">admin</span>':(c.confirmed?'<span class="badge pago">ativo</span>':'<span class="badge vencer">pendente</span>');
-      return '<tr><td><b>'+(c.nome||'-')+'</b><div style="font-size:.76rem;color:#667085">'+(c.email||'')+'</div></td><td>'+(c.instancia||'-')+'</td><td class="num">'+(et.entrada||0)+' / '+(et.doc||0)+' / '+(et.obra||0)+' / '+(et.fin||0)+'</td><td class="num">'+fmtBRL(c.investido||0)+'</td><td>'+st+'</td><td><button class="chip" onclick="reenviarConvite('+i+')">Reenviar convite</button></td></tr>';
+      return '<tr><td><b>'+escHtml(c.nome||'-')+'</b><div style="font-size:.76rem;color:#667085">'+escHtml(c.email||'')+'</div></td><td>'+escHtml(c.instancia||'-')+'</td><td class="num">'+(et.entrada||0)+' / '+(et.doc||0)+' / '+(et.obra||0)+' / '+(et.fin||0)+'</td><td class="num">'+fmtBRL(c.investido||0)+'</td><td>'+st+'</td><td><button class="chip" onclick="reenviarConvite('+i+')">Reenviar convite</button></td></tr>';
     }).join('');
     b.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>Cliente</th><th>Imovel</th><th class="num">Parcelas E/D/O/F</th><th class="num">Investido</th><th>Status</th><th>Acoes</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
-  }).catch(function(e){ var b=document.getElementById('clientesBox'); if(b)b.innerHTML='<span style="color:#DC2626">'+e.message+'</span>'; });
+  }).catch(function(e){ var b=document.getElementById('clientesBox'); if(b)b.innerHTML='<span style="color:#DC2626">'+escHtml(e.message)+'</span>'; });
 }
 function reenviarConvite(i){
   var c=_CLI[i]; if(!c||!c.email){alert('Sem e-mail para este cliente.');return;}
